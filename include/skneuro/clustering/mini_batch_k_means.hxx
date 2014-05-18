@@ -3,7 +3,7 @@
 
 
 namespace skneuro{
-
+namespace clutering{
 
 template<class T, class METRIC>
 class MiniBatchKMeans{
@@ -19,28 +19,31 @@ public:
     miniBatchSize_(miniBatchSize),
     nIter_(nIter_),
     features_( ),
-    miniBatchLabels_(nFeatures_),
+    miniBatchIndices_(nClusters),
+    miniBatchLabels_(nFeatures),
     clusterCenters_( typename vigra::MultiArrayView<2,value_type>::difference_type( nFeatures,nClusters) ),
-    assignmentCounter_(nClusters_)
+    assignmentCounter_(nClusters)
     {
         std::fill(assignmentCounter_.begin(),assignmentCounter_.end(),0);
     }
 
 
 
-    void assignFeatures(const vigra::MultiArrayView<2,value_type> features){
+    void run(const vigra::MultiArrayView<2,value_type> features){
+        if(features.shape(1)>=miniBatchSize_){
+            throw std::runtime_error("features must be larger than mini batch size");
+        }
         features_ = features;
-    }   
-
-
-    void takeSteps(){
         for(size_t i=0; i<nIter_; ++i){
             this->getMiniBatchIndices();
             this->findNearestCenter();
-            this->takeGradientStepAsub();
+            this->takeGradientStepA();
         }
-    }
+    }   
 
+    const vigra::MultiArray<2,value_type> & clusterCenters()const{
+        return clusterCenters_;
+    }
 
 private:
     void initalizeCenters(const vigra::MultiArray<2,value_type> & centers){
@@ -48,7 +51,9 @@ private:
     }
 
     void getMiniBatchIndices(){
-        // todo
+        std::vector<size_t> allIncides(features_.shape(1));
+        std::random_shuffle(allIncides.begin(), allIncides.end());
+        std::copy(allIncides.begin(), allIncides.begin()+miniBatchSize_, miniBatchIndices_.begin());
     }
     
 
@@ -56,7 +61,7 @@ private:
         #pragma omp parallel for
         for(size_t i=0;i<miniBatchSize_;++i){
 
-            vigra::ArrayVector<value_type> feature(nFeatures_,&features_(miniBatchIndices_[i],0));
+            vigra::ArrayVectorView<value_type> feature(nFeatures_,&features_(miniBatchIndices_[i],0));
             value_type minDistance = std::numeric_limits<value_type>::infinity();
             size_t minDistCluster  = nClusters_ ;
             for(size_t c=0;c<nClusters_;++c){
@@ -107,4 +112,5 @@ private:
     METRIC                              metric_;
 };
 
+} // end clustering
 } // end namespace skneuro

@@ -21,35 +21,78 @@
 #include <vector>
 
 // my headers  ( in my_module/include )
+#include <skneuro/skneuro.hxx>
 #include <skneuro/clustering/mini_batch_k_means.hxx>
 
 
 namespace skneuro{
 
 
+namespace clutering{
+
+namespace mini_batch_k_means{
+    template<class CLS>
+    void run(
+        CLS & self,
+        vigra::NumpyArray<2,float> & features
+    ){
+        self.run(features);
+    }
+
+
+    template<class CLS>
+    vigra::NumpyAnyArray clusterCenters(
+        CLS & self,
+        vigra::NumpyArray<2,float> & centers
+    ){
+        centers.reshapeIfEmpty(self.clusterCenters().shape());
+        centers = self.clusterCenters();
+        return centers;
+    }
+
+}
+
+
+
 void export_mini_batch_k_means(){
+
+    namespace python = boost::python ;
+
     // Do not change next 4 lines
     //import_array(); 
-    vigra::import_vigranumpy();
-    boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
-    boost::python::docstring_options docstringOptions(true,true,false);
+    //vigra::import_vigranumpy();
+    python::numeric::array::set_module_and_type("numpy", "ndarray");
+    python::docstring_options docstringOptions(true,true,false);
     // No not change 4 line above
 
     typedef vigra::metrics::Metric<float> PyMetric;
     typedef MiniBatchKMeans<float, PyMetric > PyMiniBatchKMeans; 
-    boost::python::class_< PyMiniBatchKMeans > (
+    python::class_< PyMiniBatchKMeans > (
         "MiniBatchKMeans",
-        boost::python::init<const size_t ,const size_t , const size_t , const PyMetric & >(
+        python::init<const size_t ,const size_t , const size_t ,const size_t, const  PyMetric & >(
             (
-                boost::python::arg("nFeatures"),
-                boost::python::arg("nClusters"),
-                boost::python::arg("miniBatchSize"),
-                boost::python::arg("metric")
+                python::arg("nFeatures"),
+                python::arg("nClusters"),
+                python::arg("miniBatchSize"),
+                python::arg("nIter"),
+                python::arg("metric")
             )
         ) 
-    );
+    )
+    .def("run", vigra::registerConverters(&mini_batch_k_means::run<PyMiniBatchKMeans>),
+        (
+            python::arg("features")
+        )
+    )
+    .def("clusterCenters", vigra::registerConverters(&mini_batch_k_means::clusterCenters<PyMiniBatchKMeans>),
+        (
+            python::arg("centers")=python::object()
+        )
+    )
+    ;
 
 
 }
 
-}
+} // end namespace clutering
+} // end namespace skneuro

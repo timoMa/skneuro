@@ -22,7 +22,9 @@
 #include <vector>
 
 namespace skneuro{
+namespace clustering{
     void export_mini_batch_k_means();
+}
 }
 
 
@@ -41,6 +43,6 @@ BOOST_PYTHON_MODULE_INIT(_clustering) {
 
 
 
-    skneuro::export_mini_batch_k_means();
+    skneuro::clustering::export_mini_batch_k_means();
 
 }

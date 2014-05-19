@@ -26,32 +26,30 @@
 
 
 namespace skneuro{
-
-
-namespace clutering{
+namespace clustering{
 
 namespace mini_batch_k_means{
-    template<class CLS>
-    void run(
-        CLS & self,
-        vigra::NumpyArray<2,float> & features
-    ){
-        self.run(features);
-    }
 
-
-    template<class CLS>
-    vigra::NumpyAnyArray clusterCenters(
-        CLS & self,
-        vigra::NumpyArray<2,float> & centers
-    ){
-        centers.reshapeIfEmpty(self.clusterCenters().shape());
-        centers = self.clusterCenters();
-        return centers;
-    }
-
+template<class CLS>
+void run(
+    CLS & self,
+    vigra::NumpyArray<2,float> & features
+){
+    self.run(features);
 }
 
+
+template<class CLS>
+vigra::NumpyAnyArray clusterCenters(
+    CLS & self,
+    vigra::NumpyArray<2,float> & centers
+){
+    centers.reshapeIfEmpty(self.clusterCenters().shape());
+    centers = self.clusterCenters();
+    return centers;
+}
+
+} // end namespace mini_batch_k_means 
 
 
 void export_mini_batch_k_means(){
@@ -94,5 +92,5 @@ void export_mini_batch_k_means(){
 
 }
 
-} // end namespace clutering
+} // end namespace clustering
 } // end namespace skneuro

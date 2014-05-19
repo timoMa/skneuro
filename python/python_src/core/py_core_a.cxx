@@ -57,7 +57,7 @@ vigra::NumpyAnyArray  imageLoop(
 void export_HelloWorld(){
     // Do not change next 4 lines
     //import_array(); 
-    vigra::import_vigranumpy();
+    //vigra::import_vigranumpy();
     boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
     boost::python::docstring_options docstringOptions(true,true,false);
     // No not change 4 line above

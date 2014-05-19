@@ -23,6 +23,7 @@
 
 namespace skneuro{
 namespace clustering{
+	
     void export_mini_batch_k_means();
 }
 }

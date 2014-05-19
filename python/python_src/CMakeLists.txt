@@ -1,4 +1,4 @@
-
+add_definitions( -DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION )
 find_package(PythonInterp REQUIRED)
 find_package(PythonLibs REQUIRED)
 #try to guess the site-packages path
@@ -24,5 +24,5 @@ add_subdirectory(clustering)
 #--------------------------------------------------------------
 # install main init
 #--------------------------------------------------------------
-install(FILES ${CMAKE_SOURCE_DIR}/python_module/skneuro/__init__.py DESTINATION ${PYTHON_SITE_PACKAGES}/skneuro)
+install(FILES ${CMAKE_SOURCE_DIR}/python/python_module/skneuro/__init__.py DESTINATION ${PYTHON_SITE_PACKAGES}/skneuro)
 

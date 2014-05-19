@@ -3,7 +3,7 @@
 
 
 namespace skneuro{
-namespace clutering{
+namespace clustering{
 
 template<class T, class METRIC>
 class MiniBatchKMeans{

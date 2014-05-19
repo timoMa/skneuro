@@ -6,8 +6,9 @@
 #--------------------------------------------------------------
 # Add MODULES  
 #--------------------------------------------------------------
-add_library( _core SHARED  py_core.cpp
-py_core_a.cxx
+add_library( _clustering SHARED  
+py_clustering.cpp
+py_mini_batch_k_means.cxx
 )
 
 
@@ -17,7 +18,7 @@ py_core_a.cxx
 # Link libraries
 #--------------------------------------------------------------
 find_library(RT rt)
-target_link_libraries( _core
+target_link_libraries( _clustering
     ${Boost_PYTHON_LIBRARIES}
     ${VIGRA_IMPEX_LIBRARY}
     ${VIGRA_NUMPY_CORE_LIBRARY}
@@ -27,22 +28,22 @@ target_link_libraries( _core
 #--------------------------------------------------------------
 # RENAME LIBRARIES
 #--------------------------------------------------------------
-set_target_properties(_core PROPERTIES PREFIX "")
+set_target_properties(_clustering PROPERTIES PREFIX "")
 
 #--------------------------------------------------------------
 # copy from build to src
 #--------------------------------------------------------------
-get_property(location TARGET _core PROPERTY LOCATION)
-add_custom_command(TARGET _core
+get_property(location TARGET _clustering PROPERTY LOCATION)
+add_custom_command(TARGET _clustering
     POST_BUILD        
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  
         ${location}
-        ${CMAKE_SOURCE_DIR}/python_module/skneuro/core
+        ${CMAKE_SOURCE_DIR}/python_module/skneuro/clustering
 )
 
 #--------------------------------------------------------------
 # install
 #--------------------------------------------------------------
-install(TARGETS _core LIBRARY DESTINATION ${PYTHON_SITE_PACKAGES}/skneuro/core)
-install(FILES ${CMAKE_SOURCE_DIR}/python_module/skneuro/core/__init__.py DESTINATION ${PYTHON_SITE_PACKAGES}/skneuro/core)
+install(TARGETS _clustering LIBRARY DESTINATION ${PYTHON_SITE_PACKAGES}/skneuro/clustering)
+install(FILES ${CMAKE_SOURCE_DIR}/python/python_module/skneuro/clustering/__init__.py DESTINATION ${PYTHON_SITE_PACKAGES}/skneuro/clustering)
 

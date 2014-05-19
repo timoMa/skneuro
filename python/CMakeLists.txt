@@ -1,6 +1,6 @@
 #--------------------------------------------------------------
 # add PYTHON to project tree
 #--------------------------------------------------------------
-add_subdirectory (python) 
+add_subdirectory (python_src) 
 
 

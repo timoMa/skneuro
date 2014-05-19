@@ -58,6 +58,6 @@ find_package(Threads)
 
 
 #--------------------------------------------------------------
-# add SRC to project tree
+# add python to project tree
 #--------------------------------------------------------------
-add_subdirectory (src) 
+add_subdirectory (python) 

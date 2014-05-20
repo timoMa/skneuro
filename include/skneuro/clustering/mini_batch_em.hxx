@@ -64,8 +64,7 @@ public:
         const vigra::MultiArrayView<2,value_type>  & features,
         vigra::MultiArrayView<2,value_type>        & probabilities
     )const{
-
-
+        #pragma omp parallel for
         for(size_t xi=0; xi< features.shape(1); ++xi){
 
             value_type psum=0.0;
@@ -93,7 +92,7 @@ public:
     }
 private:
     void varToStd(){
-
+        #pragma omp parallel for
         for(size_t c=0; c<nClusters_; ++c){
 
             const size_t count=assignmentCounter_[c];
@@ -140,7 +139,7 @@ private:
     
 
     void findNearestCenter(){
-        //#pragma omp parallel for
+        #pragma omp parallel for
         for(size_t mbi=0;mbi<miniBatchSize_;++mbi){
             
             value_type bestProb = -1.0;
@@ -148,7 +147,7 @@ private:
             //std::cout<<"mbi "<<mbi<<"\n";
 
             for(size_t ci=0; ci<nClusters_; ++ci ){   
-                value_type prob=clusterProbabiliy(ci,mbi);  
+                const value_type prob=clusterProbabiliy(ci,mbi);  
                 //std::cout<<"   ci "<<ci<<" "<<prob<<"\n";
               
                 SKNEURO_CHECK_OP(prob,>,-0.000001,"");
@@ -176,6 +175,7 @@ private:
         }
         SKNEURO_CHECK( !std::isnan(acc),"");
         SKNEURO_CHECK( !std::isinf(acc),"");
+        acc=std::max(value_type(0.0000001),acc);
         SKNEURO_CHECK_OP( acc,>,0.0,"");
         acc*=static_cast<value_type>(-0.5);
         SKNEURO_CHECK_OP( acc,<,0.0,"");
@@ -221,6 +221,7 @@ private:
                 }
             }
             else{
+                #pragma omp parallel for
                 for(size_t f=0;f<nFeatures_;++f){
 
 

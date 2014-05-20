@@ -115,10 +115,10 @@ if True:
     print hist.shape
 
 
-    batch_size = 10000
+    batch_size = 1562500
     nFeatures = hist.shape[3]
     nClusters = 20
-    nIter = 50
+    nIter = 2
     #X = hist.reshape([nFeatures,-1])
 
     X = hist.reshape([-1,nFeatures])
@@ -177,6 +177,6 @@ if True:
         f.add_subplot(1, 2, 1)
         pylab.imshow(raw, cmap ='gray')
 
-        pylab.title('clustering Bin %i ')
+        pylab.title('clustering Bin ')
         pylab.show()
         

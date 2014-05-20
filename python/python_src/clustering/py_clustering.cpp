@@ -16,6 +16,7 @@
 // vigra numpy array converters
 #include <vigra/numpy_array.hxx>
 #include <vigra/numpy_array_converters.hxx>
+#include <boost/python/exception_translator.hpp>
 
 // standart c++ headers (whatever you need (string and vector are just examples))
 #include <string>
@@ -24,11 +25,13 @@
 namespace skneuro{
 namespace clustering{
 	
-    void export_mini_batch_k_means();
+    void export_mini_batch_em();
 }
 }
 
-
+void translateStdRuntimeError(std::runtime_error const& e){
+PyErr_SetString(PyExc_RuntimeError, e.what());
+}
 
 
 
@@ -44,6 +47,7 @@ BOOST_PYTHON_MODULE_INIT(_clustering) {
 
 
 
-    skneuro::clustering::export_mini_batch_k_means();
+	boost::python::register_exception_translator<std::runtime_error>(&translateStdRuntimeError);
+    skneuro::clustering::export_mini_batch_em();
 
 }

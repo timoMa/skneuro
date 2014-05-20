@@ -37,7 +37,7 @@ add_custom_command(TARGET _core
     POST_BUILD        
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  
         ${location}
-        ${CMAKE_SOURCE_DIR}/python_module/skneuro/core
+        ${CMAKE_SOURCE_DIR}/python/python_module/skneuro/core
 )
 
 #--------------------------------------------------------------

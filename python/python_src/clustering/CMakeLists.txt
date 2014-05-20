@@ -8,7 +8,7 @@
 #--------------------------------------------------------------
 add_library( _clustering SHARED  
 py_clustering.cpp
-py_mini_batch_k_means.cxx
+py_mini_batch_em.cxx
 )
 
 
@@ -38,7 +38,7 @@ add_custom_command(TARGET _clustering
     POST_BUILD        
     COMMAND ${CMAKE_COMMAND} -E copy_if_different  
         ${location}
-        ${CMAKE_SOURCE_DIR}/python_module/skneuro/clustering
+        ${CMAKE_SOURCE_DIR}/python/python_module/skneuro/clustering
 )
 
 #--------------------------------------------------------------

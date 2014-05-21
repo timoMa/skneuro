@@ -72,7 +72,7 @@ public:
 
                 value_type acc=0;
                 for(size_t f=0; f<nFeatures_; ++f){
-                    acc += std::pow(clusterMean_(f,ci)-features(f,xi),2)/clusterVar_(f,ci);
+                    acc += std::pow(clusterMean_(f,ci)-features(f,xi),2)/(10.0*clusterVar_(f,ci));
                 }
                 acc*=static_cast<value_type>(-0.5);
                 acc = std::exp(acc);
@@ -92,27 +92,61 @@ public:
     }
 private:
     void varToStd(){
-        #pragma omp parallel for
+        //#pragma omp parallel for
         for(size_t c=0; c<nClusters_; ++c){
 
             const size_t count=assignmentCounter_[c];
             if(count>=2){
                 long double prod = 1.0;
                 for(size_t f=0; f<nFeatures_; ++f){
-                    SKNEURO_CHECK_OP( clusterAccVar_(c),>,0,"" );
-                    const long double  cVar = 42.0*static_cast<long double>(clusterAccVar_(f,c)/
-                        (static_cast<value_type>(count)-1));
+                    SKNEURO_CHECK_OP( clusterVar_(f,c),>,0,"" );
+                    SKNEURO_CHECK( !std::isnan(clusterVar_(f,c)),"" );
+                    SKNEURO_CHECK( !std::isinf(clusterVar_(f,c)),"" );
+                    //const long double  cVar = 42.0*static_cast<long double>(clusterAccVar_(f,c)/
+                    //    (static_cast<value_type>(count)-1));
 
-                    clusterVar_(f,c)=cVar;
+                    const long double cVar = clusterVar_(f,c);
+                    //clusterVar_(f,c)=cVar;
                     SKNEURO_CHECK( !std::isnan(clusterVar_(f,c)),"" );
                     prod*=cVar;
+                    //std::cout<<"prod "<<prod<<" cvar "<<cVar<<"\n";
                     SKNEURO_CHECK_OP( prod,>,0,"" );
+                    SKNEURO_CHECK( !std::isnan(prod),"" );
+                    SKNEURO_CHECK( !std::isinf(prod),"" );
                 }
                 clusterVarDet_(c)=prod;
+
+                SKNEURO_CHECK( !std::isnan(prod),"" );
+                SKNEURO_CHECK( !std::isinf(prod),"" );
+                
+
+                if(std::isnan(prod) ){
+                    std::cout<<"warning IS NAN PROD!!!\n";
+                    clusterVarDet_(c)=1.0;
+                }
+                if( std::isinf(prod) ){
+                    std::cout<<"warning IS INF PROD!!!\n";
+                    clusterVarDet_(c)=1.0;
+                }
+
+                if(std::isnan(clusterVarDet_(c)) ){
+                    std::cout<<"prod "<<prod<<"\n";
+                    std::cout<<"warning IS NAN!!!\n";
+                    clusterVarDet_(c)=1.0;
+                }
+                if( std::isinf(clusterVarDet_(c)) ){
+                    std::cout<<"prod "<<prod<<"\n";
+                    std::cout<<"warning IS INF!!!\n";
+                    clusterVarDet_(c)=1.0;
+                }
+
                 clusterVarDet_(c) = std::max(clusterVarDet_(c),value_type(0.01));
                 SKNEURO_CHECK_OP( clusterVarDet_(c),>,0,"" );
                 SKNEURO_CHECK( !std::isnan(clusterVarDet_(c)),"" );
                 SKNEURO_CHECK( !std::isinf(clusterVarDet_(c)),"" );
+
+
+
             }
             else{
                 for(size_t f=0; f<nFeatures_; ++f){
@@ -171,7 +205,7 @@ private:
         const size_t xi=miniBatchIndices_[mbi];
         value_type acc=0;
         for(size_t f=0; f<nFeatures_; ++f){
-            acc += std::pow(clusterMean_(f,ci)-features_(f,xi),2)/clusterVar_(f,ci);
+            acc += std::pow(clusterMean_(f,ci)-features_(f,xi),2)/(10.0*clusterVar_(f,ci));
         }
         SKNEURO_CHECK( !std::isnan(acc),"");
         SKNEURO_CHECK( !std::isinf(acc),"");
@@ -212,12 +246,13 @@ private:
             const value_type lRate = static_cast<value_type>(1.0)/assignmentCounter_[cachedLabel];
 
             // take gradient step
-            if(counter==1){
+            if(counter<=2){
                 for(size_t f=0;f<nFeatures_;++f){
 
                     const value_type xMean      = features_(f,miniBatchIndices_[i]);
                     clusterMean_(f,cachedLabel) = xMean;
                     clusterAccVar_(f,cachedLabel) = 1.0;
+                    clusterVar_(f,cachedLabel) =1.0;
                 }
             }
             else{
@@ -234,6 +269,18 @@ private:
                     const value_type oldAccVar  = clusterAccVar_(f,cachedLabel);
 
 
+
+                    clusterMean_(f,cachedLabel) = newMean;
+                    clusterAccVar_(f,cachedLabel)+= std::abs(diffOld*diffNew);
+
+                    const value_type currentVar =  clusterVar_(f,cachedLabel);
+                    value_type currentVarAcc  =  clusterVar_(f,cachedLabel)*(counter-2);
+                    currentVarAcc+=std::abs(diffOld*diffNew);
+                    clusterVar_(f,cachedLabel)=(currentVarAcc/(counter-1));
+
+
+                    //std::cout<<"cluster var"<<clusterVar_(f,cachedLabel)<<"\n";
+
                     SKNEURO_CHECK( !std::isnan(xMean),"");
                     SKNEURO_CHECK( !std::isinf(xMean),"");
 
@@ -248,8 +295,6 @@ private:
                     //std::cout<<"old / new "<<oldMean <<  " / " <<newMean<<"\n";
                     //std::cout<<"diff "<<std::abs(diffOld*diffNew)<<"\n";
 
-                    clusterMean_(f,cachedLabel) = newMean;
-                    clusterAccVar_(f,cachedLabel)+= std::abs(diffOld*diffNew);
                 }
             }
         }

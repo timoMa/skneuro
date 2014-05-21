@@ -115,10 +115,10 @@ if True:
     print hist.shape
 
 
-    batch_size = 1562500
+    batch_size = 255**2
     nFeatures = hist.shape[3]
-    nClusters = 20
-    nIter = 2
+    nClusters = 6
+    nIter = 50
     #X = hist.reshape([nFeatures,-1])
 
     X = hist.reshape([-1,nFeatures])

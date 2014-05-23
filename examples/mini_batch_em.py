@@ -115,9 +115,9 @@ if True:
     print hist.shape
 
 
-    batch_size = 255**2
+    batch_size = 10000
     nFeatures = hist.shape[3]
-    nClusters = 6
+    nClusters = 20
     nIter = 50
     #X = hist.reshape([nFeatures,-1])
 
@@ -125,7 +125,13 @@ if True:
 
     X = whiten(X)
 
-    X = X.swapaxes(0,1)
+    print "preinitalize"
+    mbkm=MiniBatchKMeans(n_clusters=nClusters, batch_size=1000, n_init=10)
+    mbkm.fit(X)
+    centers =  mbkm.cluster_centers_.swapaxes(0,1).astype(numpy.float64)
+    X = X.swapaxes(0,1).astype(numpy.float64)
+
+    print "done"
 
 
 
@@ -135,7 +141,7 @@ if True:
     rindex = numpy.arange(X.shape[1])
     numpy.random.shuffle(rindex)
 
-    centers = X[:,rindex[0:nClusters]]
+    #centers = X[:,rindex[0:nClusters]]
 
     cAlg.initalizeCenters(centers)
     cAlg.run(X) 

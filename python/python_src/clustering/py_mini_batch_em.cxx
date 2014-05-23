@@ -35,14 +35,14 @@ struct PyMiniBatchEmHelper{
 
     static void run(
         CLS & self,
-        vigra::NumpyArray<2,float> features
+        vigra::NumpyArray<2,double> features
     ){
         self.run(features);
     }
 
     static vigra::NumpyAnyArray clusterCenters(
         CLS & self,
-        vigra::NumpyArray<2,float> & centers
+        vigra::NumpyArray<2,double> & centers
     ){
         centers.reshapeIfEmpty(self.clusterCenters().shape());
         centers = self.clusterCenters();
@@ -51,10 +51,10 @@ struct PyMiniBatchEmHelper{
 
     static vigra::NumpyAnyArray predict(
         const CLS & self,
-        const vigra::NumpyArray<2,float> & features,
-        vigra::NumpyArray<2,float>  probabilities
+        const vigra::NumpyArray<2,double> & features,
+        vigra::NumpyArray<2,double>  probabilities
     ){
-        typename  vigra::NumpyArray<2,float>::difference_type resShape(self.nClusters(),features.shape(1));
+        typename  vigra::NumpyArray<2,double>::difference_type resShape(self.nClusters(),features.shape(1));
         probabilities.reshapeIfEmpty(resShape);
 
         self.predict(features,probabilities);
@@ -64,7 +64,7 @@ struct PyMiniBatchEmHelper{
 
     static vigra::NumpyAnyArray initalizeCenters(
         CLS & self,
-        const vigra::NumpyArray<2,float> & centers
+        const vigra::NumpyArray<2,double> & centers
     ){
         self.initalizeCenters(centers);
     }
@@ -84,7 +84,7 @@ void export_mini_batch_em(){
     python::docstring_options docstringOptions(true,true,false);
     // No not change 4 line above
 
-    typedef MiniBatchEm<float > PyMiniBatchEm; 
+    typedef MiniBatchEm<double > PyMiniBatchEm; 
     python::class_< PyMiniBatchEm > (
         "MiniBatchEm",
         python::init<const size_t ,const size_t , const size_t ,const size_t >(

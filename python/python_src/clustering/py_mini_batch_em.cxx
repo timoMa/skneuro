@@ -101,11 +101,11 @@ void export_mini_batch_em(){
             python::arg("features")
         )
     )
-    .def("clusterCenters", vigra::registerConverters(&PyMiniBatchEmHelper<PyMiniBatchEm>::clusterCenters),
-        (
-            python::arg("centers")=python::object()
-        )
-    )
+   //.def("clusterCenters", vigra::registerConverters(&PyMiniBatchEmHelper<PyMiniBatchEm>::clusterCenters),
+   //    (
+   //        python::arg("centers")=python::object()
+   //    )
+   //)
     .def("predict", vigra::registerConverters(&PyMiniBatchEmHelper<PyMiniBatchEm>::predict),
         (
             python::arg("features"),

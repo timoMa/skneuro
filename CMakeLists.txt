@@ -8,12 +8,17 @@ ELSE()
 ENDIF()
 
 #--------------------------------------------------------------
-# my_module
+# skneuro
 #--------------------------------------------------------------
 cmake_minimum_required(VERSION 2.6)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 include(CMakeCopyIfDifferent)
-project(my_module)
+project(skneuro)
+
+#--------------------------------------------------------------
+# c++ 11
+#--------------------------------------------------------------
+SET(CMAKE_CXX_FLAGS "-std=c++0x")
 
 
 #--------------------------------------------------------------
@@ -63,8 +68,14 @@ include_directories(
 find_package(Threads)
 
 
+include( CTest )
+#--------------------------------------------------------------
+# add src to project tree
+#--------------------------------------------------------------
+add_subdirectory(src) 
+
 
 #--------------------------------------------------------------
 # add python to project tree
 #--------------------------------------------------------------
-add_subdirectory (python) 
+add_subdirectory(python) 

@@ -62,13 +62,20 @@ struct PyMiniBatchEmHelper{
     }
 
 
-    static vigra::NumpyAnyArray initalizeCenters(
+    static void initalizeCenters(
         CLS & self,
         const vigra::NumpyArray<2,double> & centers
     ){
         self.initalizeCenters(centers);
     }
 
+    static void initalizeCenters2(
+        CLS & self,
+        const vigra::NumpyArray<2,double> & features,
+        const vigra::NumpyArray<1,vigra::UInt32> & labels
+    ){
+        self.initalizeCenters2(features,labels);
+    }
 
 };
 
@@ -115,6 +122,12 @@ void export_mini_batch_em(){
     .def("initalizeCenters", vigra::registerConverters(&PyMiniBatchEmHelper<PyMiniBatchEm>::initalizeCenters),
         (
             python::arg("centers")
+        )
+    )
+    .def("initalizeCenters", vigra::registerConverters(&PyMiniBatchEmHelper<PyMiniBatchEm>::initalizeCenters2),
+        (
+            python::arg("features"),
+            python::arg("labels")
         )
     )
     ;

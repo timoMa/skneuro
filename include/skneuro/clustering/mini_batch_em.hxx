@@ -8,7 +8,6 @@
 
 #include <vigra/linear_algebra.hxx>
 
-#include <boost/math/distributions/normal.hpp>
 
 
 
@@ -23,7 +22,7 @@ namespace vacc = vigra::acc;
 
 
 template<class T>
-T multivariate_normal_distribution_density2(
+T multivariate_normal_distribution_density(
     vigra::MultiArrayView<1,T> mean,
     vigra::MultiArrayView<1,T> variance,
     vigra::MultiArrayView<1,T> observation
@@ -64,29 +63,14 @@ T normal_pdf(T x, T m, T s)
 }
 
 
-template <typename T>
-T normal_pdf2(T x, T m, T s)
-{
-    boost::math::normal_distribution<long double> nd(m,s);
-    return boost::math::pdf(nd,x);
-}
-
-
-
-long double g1d(const long double mean,const long double sigma, const long double x){
-    return std::exp(-0.5*std::pow((x-mean)/sigma,2.0))/
-            (sigma*std::sqrt(2.0*M_PI));
-}
-
 template<class T>
-T multivariate_normal_distribution_density(
+T multivariate_normal_distribution_density2(
     vigra::MultiArrayView<1,T> mean,
     vigra::MultiArrayView<1,T> variance,
     vigra::MultiArrayView<1,T> observation
 ){
     long double res=1.0;
     for(size_t i=0; i<mean.size(); ++i){
-        //long double tmpRes = g1d( mean[i], std::sqrt(variance[i]), observation[i] );
         long double tmpRes = normal_pdf(observation[i], mean[i], std::sqrt(variance[i]) );
         if(tmpRes>1.0){
             std::cout<<"mean "<<mean[i]<<"  variance "<<variance[i]<<" observation "<<observation[i]<<" p "<<tmpRes<<"\n";
@@ -148,34 +132,6 @@ public:
         }
 
         return multivariate_normal_distribution_density(mean,newVar,observation);
-        /*
-        T tmp = 1.0;
-        for(size_t i=0; i<nFeatures_; ++i){
-            T var = nUpdates_ > 10 ?  variances(i)*10.0 : 1.0;
-            var = (var > minVariance_ ? var : minVariance_);
-            tmp*=(var*var);
-        }
-        tmp=std::sqrt(tmp);
-
-
-        T expArg = 0.0;
-        for(size_t i=0; i<nFeatures_; ++i){
-            T var = nUpdates_ > 10 ?  variances(i)*10.0 : 1.0;
-            var = (var > minVariance_ ? var : minVariance_);
-            const T  diff  = mean(i)-observation(i);
-            const T diffdiff = diff*diff;
-            if( !(diffdiff>=0) ){
-                std::cout<<"mean(i) "<<mean(i)<<" observation(i) "<<observation(i)<<" dd "<<diffdiff<<"\n\n";
-            }
-            SKNEURO_CHECK_OP(diffdiff,>=,0.0,"");
-            expArg+= ((diff*diff)/(var*var));
-            //std::cout<<"var "<<var<<" diff "<<diff<<" exp "<<expArg<<"\n\n";
-
-        }
-        expArg*=static_cast<T>(-0.5);
-        //std::cout<<"piFac_ "<<piFac_<<" sqrtCovarianceDet_ "<<sqrtCovarianceDet_<<" exp "<<expArg<<"\n\n";
-        return std::exp(expArg)/(piFac_*tmp);
-        */
     }
 
     /// update gaussian parameters from
@@ -236,6 +192,143 @@ private:
 };
 
 
+template<class T>
+class GenericMultivariateGaussian{
+
+public:
+    typedef vigra::MultiArrayView<1,T> ObervationType;
+
+    GenericMultivariateGaussian(const size_t nFeatures, const T minVariance = 0.2)
+    :   nFeatures_(nFeatures),
+        acc_(),
+        nUpdates_(0),
+        sqrtCovarianceDet_(),
+        minVariance_(minVariance),
+        piFac_(std::pow(2.0*M_PI,  static_cast<T>(nFeatures)/2))
+    {
+        SKNEURO_CHECK_OP(acc_.passesRequired(),==,1,"internal error");
+    }
+
+    /// get the probability density
+    /// for a given observation
+    T density(const ObervationType & observation)const{
+
+        SKNEURO_CHECK_OP(nUpdates_,>=,this->minUpdates(),
+            "more updates are needed to make a density estimation");
+        //std::cout<<"density sqrtCovarianceDet_ "<<sqrtCovarianceDet_<<"\n\n";
+        // extract mean and variance
+
+        vigra::MultiArray<1,long double> obs=observation;
+
+
+        // do matrix multiplication 
+        const long double expArg = vigra::linalg::mmul(
+            obs.insertSingletonDimension(1).transpose(),
+            vigra::linalg::mmul(icovar_,obs.insertSingletonDimension(1))
+        )(0,0)*static_cast<long double>(-0.5); 
+
+
+        
+
+        //SKNEURO_CHECK_OP(size,==,1," ");
+
+
+        const long double twoPiPowDim = std::pow(static_cast<long double>(2.0)*static_cast<long double>(M_PI),nFeatures_);
+        const long double normalization = std::sqrt(twoPiPowDim*covarDet_);
+        const  long double res =  std::exp(expArg)/normalization;
+
+        const long double res2 = std::exp(std::log(static_cast<long double>(1)/normalization) + expArg);
+
+
+
+
+        //std::cout<<"det"<<covarDet_<<" exparg "<<expArg<<" res " << res <<" res2 "<< res2 << "\n";
+
+        return res;
+        //return multivariate_normal_distribution_density(mean,newVar,observation);
+    }
+
+    /// update gaussian parameters from
+    /// an instance with given weight
+    void updateFrom(const ObervationType & observation, const double weight){
+        SKNEURO_CHECK_OP(observation.shape(0),==,nFeatures_," ");
+        //std::cout<<"updateFrom   sqrtCovarianceDet "<<sqrtCovarianceDet_<<"\n";
+        // do the accumation
+        acc_(observation,weight);
+        ++nUpdates_;
+    }
+
+    /// minimum number of updates which is needed
+    /// to make a density prediction
+    size_t minUpdates()const{
+        return 1;
+    }
+
+    /// reset the accumulation
+    void reset(){
+        acc_.reset();
+        nUpdates_(0);
+    }
+
+    /// disable update modus
+    void lock(){
+
+        //const vigra::MultiArrayView<1,T> mean = vacc::get< vacc::Mean>(acc_);
+        const vigra::MultiArrayView<1,T> variances = vacc::get< vacc::Variance>(acc_);
+        const vigra::MultiArrayView<2,T> covar     = vacc::get< vacc::Covariance>(acc_);
+
+        covar_ = covar;
+
+        for(size_t i=0; i<nFeatures_; ++i)
+        for(size_t j=0; j<nFeatures_; ++j){
+            const T cv = covar_(i,j);
+            if(i==j){
+                if(std::isinf(cv) || std::isnan(cv))
+                    covar_(i,j)=0.2;
+                else if(cv<=0.2)
+                    covar_(i,j)=0.2;
+
+                //newCovar(i,j)+=1.0;
+                covar_(i,j)*=10.0;
+            }
+            else if(std::isinf(cv) || std::isnan(cv)){
+                    covar_(i,j)=0.0;
+            }
+            else{
+                covar_(i,j)*=0.001;
+            }
+            
+        }
+
+        // get inverse
+        icovar_ = covar_;
+        vigra::linalg::inverse(covar_,icovar_);
+
+        // get determinant
+        covarDet_ = vigra::linalg::determinant(covar_,"Cholesky");
+    }   
+
+    /// enable update modus 
+    void unlock(){
+
+    }
+
+private:
+    typedef vacc::AccumulatorChain< ObervationType,
+        vacc::Select<vacc::Mean,vacc::Variance, vacc::Covariance > > AccType;
+
+
+    size_t nFeatures_;
+    AccType acc_;
+    size_t nUpdates_;
+    T sqrtCovarianceDet_;
+    T minVariance_;
+    T piFac_;
+
+    long double covarDet_;
+    vigra::MultiArray<2,long double> covar_;
+    vigra::MultiArray<2,long double> icovar_;
+};
     
 
 template<class T>
@@ -280,7 +373,7 @@ public:
             std::cout<<"take gradient step\n";
             this->takeGradientStepA();
         }
-
+        this->lockGaussians();
     }   
 
     //const vigra::MultiArray<2,value_type> & clusterCenters()const{
@@ -297,6 +390,9 @@ public:
     )const{
         //#pragma omp parallel for
         for(size_t xi=0; xi< features.shape(1); ++xi){
+            if(xi%10==0){
+                std::cout<<"xi"<<xi<<" "<<features.shape(1)<<"\n";
+            }
             value_type psum=0.0;
             vigra::MultiArrayView<1,value_type> observation = features. template bind<1>(xi);
             for(size_t ci=0; ci< nClusters_; ++ci){
@@ -314,6 +410,15 @@ public:
         for(size_t c=0; c<nClusters_; ++c){
             DataType data = centers. template bind<1>(c);
             gaussians_[c].updateFrom(data,1.0);
+        }
+    }
+
+    void initalizeCenters2(const vigra::MultiArray<2,value_type> & features, const vigra::MultiArray<1,vigra::UInt32> & labels){
+        //clusterMean_=centers;
+        for(size_t i=0; i<features.shape(1); ++i){
+            const size_t label = labels(i);
+            DataType data = features. template bind<1>(i);
+            gaussians_[label].updateFrom(data,1.0);
         }
     }
 private:
@@ -346,7 +451,7 @@ private:
                 miniBatchFuzzyLabels_(ci,mbi)=prob;
                 psum+=prob;
                 SKNEURO_CHECK_OP(prob,>,-0.000001,"");
-                SKNEURO_CHECK_OP(prob,<, 1.000001,"");
+                //SKNEURO_CHECK_OP(prob,<, 1.000001,"");
                 SKNEURO_CHECK( !std::isnan(prob),"");
                 SKNEURO_CHECK( !std::isinf(prob),"");
             }

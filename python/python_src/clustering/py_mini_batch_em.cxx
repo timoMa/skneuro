@@ -94,12 +94,13 @@ void export_mini_batch_em(){
     typedef MiniBatchEm<double > PyMiniBatchEm; 
     python::class_< PyMiniBatchEm > (
         "MiniBatchEm",
-        python::init<const size_t ,const size_t , const size_t ,const size_t >(
+        python::init<const size_t ,const size_t , const size_t ,const size_t,const double >(
             (
                 python::arg("nFeatures"),
                 python::arg("nClusters"),
                 python::arg("miniBatchSize"),
-                python::arg("nIter")
+                python::arg("nIter"),
+                python::arg("varScale")
             )
         ) 
     )

@@ -117,7 +117,7 @@ if True:
 
     batch_size = 10000
     nFeatures = hist.shape[3]
-    nClusters = 20
+    nClusters = 10
     nIter = 50
     #X = hist.reshape([nFeatures,-1])
 
@@ -135,7 +135,7 @@ if True:
 
 
 
-    cAlg = skneuro.clustering.MiniBatchEm(nFeatures=nFeatures,nClusters=nClusters,miniBatchSize=batch_size,nIter=nIter)
+    cAlg = skneuro.clustering.MiniBatchEm(nFeatures=nFeatures,nClusters=nClusters,miniBatchSize=batch_size,nIter=nIter,varScale=10.0)
 
     print "run"
     rindex = numpy.arange(X.shape[1])

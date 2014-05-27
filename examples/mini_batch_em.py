@@ -5,10 +5,9 @@ import numpy
 import skneuro
 import matplotlib
 from matplotlib import pylab
-import skneuro.clustering
-from sklearn.cluster import MiniBatchKMeans
+from skneuro.clustering import initalized_mini_batch_em
 from scipy.cluster.vq import whiten
-import sys
+
 
 pathIn     = "/home/tbeier/Desktop/data.h5"
 pathHist   = "/home/tbeier/Desktop/hist.h5"
@@ -101,7 +100,7 @@ if False:
 
 
 
-if True:
+if False:
 
 
     rawData  = vigra.impex.readHDF5(pathIn,'data').astype(numpy.float32)
@@ -111,6 +110,16 @@ if True:
 
     hist = numpy.concatenate([hist,hist2,hist3], axis=3)
 
+
+    mainfeatures = "/home/tbeier/Desktop/main_features.h5"
+
+
+    vigra.impex.writeHDF5(hist,mainfeatures,'data')
+
+    print "is saved"
+
+if True:
+    hist = vigra.impex.readHDF5( "/home/tbeier/Desktop/main_features.h5",'data').astype(numpy.float32)
     hist = hist.squeeze()
     print hist.shape
 
@@ -119,39 +128,56 @@ if True:
     nFeatures = hist.shape[3]
     nClusters = 10
     nIter = 50
+    varianceScale  = 10.0
     #X = hist.reshape([nFeatures,-1])
 
     X = hist.reshape([-1,nFeatures])
 
     X = whiten(X)
 
-    print "preinitalize"
-    mbkm=MiniBatchKMeans(n_clusters=nClusters, batch_size=1000, n_init=10)
-    mbkm.fit(X)
-    centers =  mbkm.cluster_centers_.swapaxes(0,1).astype(numpy.float64)
-    X = X.swapaxes(0,1).astype(numpy.float64)
-
-    print "done"
 
 
 
-    cAlg = skneuro.clustering.MiniBatchEm(nFeatures=nFeatures,nClusters=nClusters,miniBatchSize=batch_size,nIter=nIter,varScale=10.0)
 
-    print "run"
-    rindex = numpy.arange(X.shape[1])
-    numpy.random.shuffle(rindex)
 
-    #centers = X[:,rindex[0:nClusters]]
+    probs = initalized_mini_batch_em(X=X,nClusters=nClusters,varianceScale=varianceScale, miniBatchSize=batch_size,nInit=10 )
 
-    cAlg.initalizeCenters(centers)
-    cAlg.run(X) 
 
-    print "pred"
-    probs = cAlg.predict(X)
 
-    print "probs.shape",probs.shape
 
-    probs=probs.reshape((nClusters,)+hist.shape[0:3])
+
+
+
+    if False:
+
+
+        print "preinitalize"
+        mbkm=MiniBatchKMeans(n_clusters=nClusters, batch_size=1000, n_init=10)
+        mbkm.fit(X)
+        centers =  mbkm.cluster_centers_.swapaxes(0,1).astype(numpy.float64)
+        X = X.swapaxes(0,1).astype(numpy.float64)
+
+        print "done"
+
+
+
+        cAlg = skneuro.clustering.MiniBatchEm(nFeatures=nFeatures,nClusters=nClusters,miniBatchSize=batch_size,nIter=nIter,varScale=varianceScale)
+
+        print "run"
+        rindex = numpy.arange(X.shape[1])
+        numpy.random.shuffle(rindex)
+
+        #centers = X[:,rindex[0:nClusters]]
+
+        cAlg.initalizeCenters(centers)
+        cAlg.run(X) 
+
+        print "pred"
+        probs = cAlg.predict(X)
+
+        print "probs.shape",probs.shape
+
+        probs=probs.reshape((nClusters,)+hist.shape[0:3])
 
 
 

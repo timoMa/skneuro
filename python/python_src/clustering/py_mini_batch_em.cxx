@@ -100,7 +100,7 @@ void export_mini_batch_em(){
                 python::arg("nClusters"),
                 python::arg("miniBatchSize"),
                 python::arg("nIter"),
-                python::arg("varScale")
+                python::arg("varianceScale")
             )
         ) 
     )

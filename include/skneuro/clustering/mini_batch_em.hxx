@@ -53,49 +53,15 @@ T multivariate_normal_distribution_density(
 
 
 
-template <typename T>
-T normal_pdf(T x, T m, T s)
-{
-    static const T inv_sqrt_2pi = 0.3989422804014327;
-    T a = (x - m) / s;
-
-    return inv_sqrt_2pi / s * std::exp(-T(0.5) * a * a);
-}
-
-
-template<class T>
-T multivariate_normal_distribution_density2(
-    vigra::MultiArrayView<1,T> mean,
-    vigra::MultiArrayView<1,T> variance,
-    vigra::MultiArrayView<1,T> observation
-){
-    long double res=1.0;
-    for(size_t i=0; i<mean.size(); ++i){
-        long double tmpRes = normal_pdf(observation[i], mean[i], std::sqrt(variance[i]) );
-        if(tmpRes>1.0){
-            std::cout<<"mean "<<mean[i]<<"  variance "<<variance[i]<<" observation "<<observation[i]<<" p "<<tmpRes<<"\n";
-        }
-
-        res*=tmpRes;
-    }
-    return res;
-}   
-
-
-
-
-
-
-
-
 template<class T>
 class DiagonalMultivariateGaussian{
 
 public:
     typedef vigra::MultiArrayView<1,T> ObervationType;
 
-    DiagonalMultivariateGaussian(const size_t nFeatures, const T minVariance = 0.2)
+    DiagonalMultivariateGaussian(const size_t nFeatures, const T varianceScale,  const T minVariance=0.2)
     :   nFeatures_(nFeatures),
+        varianceScale_(varianceScale),
         acc_(),
         nUpdates_(0),
         sqrtCovarianceDet_(),
@@ -127,7 +93,7 @@ public:
                 newVar(i)=0.2;
             }
         
-            newVar(i)*=10.0;
+            newVar(i)*=varianceScale_;
 
         }
 
@@ -184,6 +150,7 @@ private:
 
 
     size_t nFeatures_;
+    T varianceScale_;
     AccType acc_;
     size_t nUpdates_;
     T sqrtCovarianceDet_;
@@ -198,8 +165,9 @@ class GenericMultivariateGaussian{
 public:
     typedef vigra::MultiArrayView<1,T> ObervationType;
 
-    GenericMultivariateGaussian(const size_t nFeatures, const T minVariance = 0.2)
+    GenericMultivariateGaussian(const size_t nFeatures, const T varianceScale, const T minVariance=0.2)
     :   nFeatures_(nFeatures),
+        varianceScale_(varianceScale),
         acc_(),
         nUpdates_(0),
         sqrtCovarianceDet_(),
@@ -319,6 +287,7 @@ private:
 
 
     size_t nFeatures_;
+    T varianceScale_;
     AccType acc_;
     size_t nUpdates_;
     T sqrtCovarianceDet_;
@@ -339,16 +308,17 @@ public:
 
     MiniBatchEm(){}
 
-    MiniBatchEm(const size_t nFeatures,const size_t nClusters,const size_t miniBatchSize, const size_t nIter)
+    MiniBatchEm(const size_t nFeatures,const size_t nClusters,const size_t miniBatchSize, const size_t nIter, const T varianceScale)
     :
     nFeatures_(nFeatures),
+    varianceScale_(varianceScale),
     nClusters_(nClusters),
     miniBatchSize_(miniBatchSize),
     nIter_(nIter),
     features_( ),
     miniBatchIndices_(miniBatchSize),
     miniBatchFuzzyLabels_( typename vigra::MultiArrayView<2,value_type>::difference_type( nClusters+1,miniBatchSize) ),
-    gaussians_(nClusters, DiagonalMultivariateGaussian<value_type>(nFeatures) )
+    gaussians_(nClusters, DiagonalMultivariateGaussian<value_type>(nFeatures,varianceScale) )
     {
 
     }
@@ -359,6 +329,9 @@ public:
 
         if(features.shape(1)<=miniBatchSize_){
             throw std::runtime_error("features must be larger than mini batch size");
+        }
+        if(features.shape(0)!=nFeatures_){
+            throw std::runtime_error("number of features not matching");
         }
         features_ = features;
 
@@ -388,9 +361,15 @@ public:
         const vigra::MultiArrayView<2,value_type>  & features,
         vigra::MultiArrayView<2,value_type>        & probabilities
     )const{
-        //#pragma omp parallel for
+
+    	if(features.shape(0)!=nFeatures_){
+            throw std::runtime_error("number of features not matching");
+        }
+
+
+        #pragma omp parallel for
         for(size_t xi=0; xi< features.shape(1); ++xi){
-            if(xi%10==0){
+            if(xi%10000==0){
                 std::cout<<"xi"<<xi<<" "<<features.shape(1)<<"\n";
             }
             value_type psum=0.0;
@@ -506,6 +485,7 @@ private:
 
 
     size_t nFeatures_;
+    T varianceScale_;
     size_t nClusters_;
     size_t miniBatchSize_;
     size_t nIter_;

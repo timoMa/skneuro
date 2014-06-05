@@ -1,4 +1,4 @@
-#define PY_ARRAY_UNIQUE_SYMBOL skneuro_core_PyArray_API
+#define PY_ARRAY_UNIQUE_SYMBOL skneuro_utilities_PyArray_API
 #define NO_IMPORT_ARRAY
 
 // boost python related

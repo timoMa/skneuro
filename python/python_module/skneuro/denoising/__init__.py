@@ -1,16 +1,21 @@
+import numpy
+import vigra
+
 from _denoising import *
 from functools import partial
 from scipy.ndimage.filters import median_filter
 
 try:
-    from skimage.filter import denoise_tv_bregman,denoise_tv_chambolle
+    from skimage.filter import denoise_tv_bregman, denoise_tv_chambolle
 except:
-    from skimage.restoration import denoise_tv_bregman,denoise_tv_chambolle
+    from skimage.restoration import denoise_tv_bregman, denoise_tv_chambolle
 
-import numpy
-import vigra 
-
-def nonLocalMean():
+def nonLocalMean(
+    image,
+    patchRadius=2,
+    searchRadius=10,
+    gamma=10,
+):
     pass
 
 
@@ -33,35 +38,66 @@ def medianSmoothing(image,radius=None, footprint=None, mode='reflect', cval=0.0,
 
 def tvBregman(image, weight, eps=0.001, maxIter=None, isotropic=True, out=None):
 
-    image -= image.min()
-    image /= image.max()
+    # to restore min max ?
+    restore=False
+    if image.min()<-1.0 or image.max()>1.0:
+        restore=True
+        gaussSmoothed = gaussianSmoothing(image,simga=1.0)
+        oldMin = gaussSmoothed.min()
+        oldMax = gaussSmoothed.max()
+        image-=image.min()
+        image/=image.max()
+
 
     kwargs = dict(image=image, weight=weight, eps=eps, isotropic=isotropic)
     if maxIter is not None :
         kwargs['maxIter']=maxIter
 
     res = denoise_tv_bregman(**kwargs)
+
+    if restore:
+        res -= res.min()
+        res /= res.max()
+        res *= (oldMax-oldMin)
+        res += oldMin
+
     if out is None:
         return res
     else :
         out[:] = res[:]
         return out
+
 
 def tvChambolle(image, weight, eps=0.001, maxIter=None, out=None):
 
-    image -= image.min()
-    image /= image.max()
+    # to restore min max ?
+    restore=False
+    if image.min() < 1.0 or image.max() > 1.0:
+        restore=True
+        gaussSmoothed = gaussianSmoothing(image, simga=1.0)
+        oldMin = gaussSmoothed.min()
+        oldMax = gaussSmoothed.max()
+        image -= image.min()
+        image /= image.max()
 
     kwargs = dict(im=image, weight=weight, eps=eps, multichannel=False)
-    if maxIter is not None :
-        kwargs['n_iter_max']=maxIter
+
+    if maxIter is not None:
+        kwargs['n_iter_max'] = maxIter
 
     res = denoise_tv_chambolle(**kwargs)
+    if restore:
+        res -= res.min()
+        res /= res.max()
+        res *= (oldMax-oldMin)
+        res += oldMin
+
     if out is None:
         return res
-    else :
+    else:
         out[:] = res[:]
         return out
+
 
 def anisotropicSmoothing():
     # impl "Edge Aware Anisotropic Diffusion for 3D Scalar Data"
@@ -79,36 +115,34 @@ def smartSmoothing():
     pass
 
 
+def guidedFilter(image, epsilon, guidanceImage=None, fMean=None):
+    if guidanceImage is None:
+        # 1) mean an corr
+        meanI = fMean(image)
+        meanG = meanI
+        corrG  = fMean(image*image)
+        corrGI = corrG
 
+        # 2) var and cov    
+        varG = corrG - meanG*meanG
+        covGI = varG
+    else:
+        # 1) mean an corr
+        meanI = fMean(image)
+        meanG = fMean(guidanceImage)
+        corrG  = fMean(guidanceImage*guidanceImage)
+        corrGI = fMean(guidanceImage*image)
 
-def guidedFilter(image, guidanceImage, epsilon,
-                 fMean=None):
-    # 1) mean an corr
-    print "mean 1"
-    meanI = fMean(image)
-
-    print "mean 2"
-    meanG = fMean(guidanceImage)
-
-    print "mean 3"
-    corrG  = fMean(guidanceImage*guidanceImage)
-
-    print "mean 4"
-    corrGI = fMean(guidanceImage*image)
-
-    # 2) var and cov    
-    varG = corrG - meanG*meanG
-    covGI = corrGI - meanI*meanG
+        # 2) var and cov    
+        varG = corrG - meanG*meanG
+        covGI = corrGI - meanI*meanG
 
     # 3) "a" and "b" image (as in paper)
     a = covGI / (varG + epsilon)
     b = meanI - a*meanG
 
     # 4) means on "a" and "b"
-    print "mean 5"
     meanA = fMean(a)
-
-    print "mean 6"
     meanB = fMean(b)
 
     # 5) make result q 
@@ -117,11 +151,12 @@ def guidedFilter(image, guidanceImage, epsilon,
     return q
 
 
-def gaussianGuidedFilter(image, guidanceImage, sigma, epsilon=0.4**2):
+
+def gaussianGuidedFilter(image,sigma,epsilon, guidanceImage=None):
     meanFunction = partial(gaussianSmoothing,sigma=sigma)
     return guidedFilter(image, guidanceImage, epsilon, meanFunction)
 
-def medianGuidedFilter(image, guidanceImage, radius, epsilon=0.4**2):
+def medianGuidedFilter(image,radius,epsilon, guidanceImage=None):
     meanFunction = partial(medianSmoothing,radius=radius)
     return guidedFilter(image, guidanceImage, epsilon, meanFunction)
 

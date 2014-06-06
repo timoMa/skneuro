@@ -21,7 +21,8 @@
 #include <string>
 #include <vector>
 
-void export_very_non_local_mean();
+
+void exportNonLocalMean();
 
 // export my module
 BOOST_PYTHON_MODULE_INIT(_denoising) {
@@ -33,6 +34,6 @@ BOOST_PYTHON_MODULE_INIT(_denoising) {
     boost::python::docstring_options docstringOptions(true,true,false);
     // No not change 4 line above
 
-    export_very_non_local_mean();
-
+    //export_very_non_local_mean();
+    exportNonLocalMean();
 }

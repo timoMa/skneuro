@@ -1,5 +1,8 @@
-#include <vigra/box.hxx>
+#ifndef SKNEURO_UTILITIES_BLOCKING 
+#define SKNEURO_UTILITIES_BLOCKING 
 
+#include <vigra/box.hxx>
+#include <iostream>
 
 template<class COORDINATE, int DIMENSION>
 class Block
@@ -19,8 +22,60 @@ public:
     :   BaseType(a,b){
 
     }
+
+    std::string str()const{
+        std::stringstream ss;
+        ss<<"(";
+        for(int i=0; i<DIMENSION; ++i){
+            ss<<this->begin()[i]<<" ";
+        }
+        ss<<") -- (";
+        for(int i=0; i<DIMENSION; ++i){
+            ss<<this->end()[i]<<" ";
+        }
+        return ss.str();
+    }
+
 private:
 };
+
+template<class COORDINATE, int DIMENSION>
+class BlockWithBorder{
+public:
+    typedef Block<COORDINATE, DIMENSION>  BlockType;
+    typedef typename BlockType::CoordType CoordType;
+
+    BlockWithBorder(){  
+    }
+
+    BlockWithBorder(const BlockType & core, const BlockType & coreWithBorder)
+    :   core_(core),
+        coreWithBorder_(coreWithBorder){
+    }
+
+    std::string str()const{
+        std::stringstream ss;
+        ss<<"Core "<<core_<<" CoreWithBorder "<<coreWithBorder_;
+        return ss.str();
+    }
+
+private:
+    BlockType core_;
+    BlockType coreWithBorder_;
+};
+
+
+template<class COORDINATE,int DIMENSION>
+std::ostream & operator<<(std::ostream & lhs, const Block<COORDINATE,DIMENSION > & block ){
+    lhs<<block.str();
+    return lhs;
+}
+
+template<class COORDINATE,int DIMENSION>
+std::ostream & operator<<(std::ostream & lhs, const BlockWithBorder<COORDINATE,DIMENSION > & blockWithBorder ){
+    lhs<<blockWithBorder.str();
+    return lhs;
+}
 
 
 template<class COORDINATE, int DIMENSION>
@@ -29,6 +84,7 @@ class Blocking{
 public:
     
     typedef Block<COORDINATE, DIMENSION>  BlockType;
+    typedef BlockWithBorder<COORDINATE, DIMENSION>  BlockWithBorderType;
     typedef typename BlockType::CoordType CoordType;
 
     Blocking()
@@ -66,14 +122,21 @@ public:
 
     const BlockType & operator[](const size_t i)const{
         SKNEURO_ASSERT_OP(i,<,blocking_.size());
+        std::cout<<"get block cpp\n";
         return blocking_[i];
     }
 
-    BlockType blockWithBorder(const size_t index , const size_t width)const{
-        BlockType block = blocking_[index];
-        block.addBorder(width);
+    BlockWithBorderType blockWithBorder(const size_t index , const size_t width)const{
+        std::cout<<"get block  with border cpp\n";
+        BlockType blockWithBorder = blocking_[index];
+        blockWithBorder.addBorder(width);
+        std::cout<<"intersect\n";
         // intersect
-        block &=  totalBlock_;
+        blockWithBorder &=  totalBlock_;
+        std::cout<<"return \n";
+        const BlockWithBorderType bwb( blocking_[index],blockWithBorder);
+        std::cout<<"return2 \n";
+        return bwb;
     }   
 
 private:
@@ -82,3 +145,5 @@ private:
     BlockType totalBlock_;
     std::vector<BlockType> blocking_;
 };
+
+#endif /*SKNEURO_UTILITIES_BLOCKING */

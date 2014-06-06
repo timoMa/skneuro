@@ -32,8 +32,13 @@ namespace bp = boost::python;
 template<class BLOCKING>
 struct BlockingHelper{
     typedef BLOCKING BlockingType;
+    typedef typename BlockingType::BlockType BlockType;
     typedef typename BlockingType::CoordType CoordType;
 
+    static BlockType getBlock(const BlockingType & self, const int index){
+        std::cout<<"get block --- \n";
+        return self[index];
+    }
 
 };
 
@@ -59,11 +64,13 @@ void export_blocking(){
     bp::class_<BlockingType>("Blocking3d",bp::init<>())
         .def(bp::init<const CoordType &, const CoordType & >())
         .def("__len__", &BlockingType::size)
+        .def("__getitem__",&BlockingHelperType::getBlock)
         .def("blockWithBorder", &BlockingType::blockWithBorder,
             (
                 bp::arg("index"),
                 bp::arg("width")
-            )
+            ),
+            bp::return_value_policy<bp::return_by_value>()
         )
     ;
 }

@@ -1,9 +1,10 @@
 import numpy
 import vigra
 
-from _denoising import *
+from _denoising import _nonLocalMean3d, RatioPolicy, NormPolicy
 from functools import partial
 from scipy.ndimage.filters import median_filter
+from multiprocessing import cpu_count
 
 try:
     from skimage.filter import denoise_tv_bregman, denoise_tv_chambolle
@@ -12,11 +13,25 @@ except:
 
 def nonLocalMean(
     image,
+    policy,
     patchRadius=2,
     searchRadius=10,
-    gamma=10,
+    sigmaSpatial=1.0,
+    sigmaPresmoothing=1.0,
+    stepSize=2,
+    iterations=1,
+    nThreads=None,
+    verbose=True,
+    out=None
 ):
-    pass
+    if nThreads is None:
+        nThreads = cpu_count()
+
+    return _nonLocalMean3d(
+        image=image, policy=policy, sigmaSpatial=sigmaSpatial, searchRadius=searchRadius, patchRadius=patchRadius,
+        sigmaMean=sigmaPresmoothing, stepSize=stepSize, iterations=iterations, nThreads=nThreads, verbose=verbose,
+        out=out
+    )
 
 
 def gaussianSmoothing(image,sigma):

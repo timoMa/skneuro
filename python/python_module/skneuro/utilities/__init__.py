@@ -1,5 +1,6 @@
 from _utilities import *
-
+from cStringIO import StringIO
+import sys
 
 def boostPythonInjector(clsToExtend):
     class Injector(object):
@@ -26,5 +27,15 @@ def extendBlocking3d():
             # call c++ to unlock gil if possible
             return out
 
+        def __str__(self):
+
+            old_stdout = sys.stdout
+            sys.stdout = mystdout = StringIO()
+
+            for i in xrange(len(self)):
+                print  self.__getitem__(i)
+
+            sys.stdout = old_stdout
+            return mystdout.getvalue()
 extendBlocking3d()
 del extendBlocking3d

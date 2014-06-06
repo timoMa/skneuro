@@ -41,7 +41,10 @@ struct BlockHelper{
     static CoordType end(const BlockType & block){
         return block.end();
     }
+
 };
+
+
 
 
 void export_block(){
@@ -54,6 +57,7 @@ void export_block(){
 
 
     typedef Block<int, 3>  BlockType;
+    typedef BlockWithBorder<int, 3> BlockWithBorderType;
     typedef BlockType::Vector CoordType;
     typedef BlockHelper<BlockType> BlockHelperType;
 
@@ -64,6 +68,14 @@ void export_block(){
         .def("begin",&BlockHelperType::begin)
         .def("end",&BlockHelperType::end)
         .def("addBorder",&BlockType::addBorder)
+        .def("__str__",&BlockType::str)
     ;
+
+    bp::class_<BlockWithBorderType>("BlockWithBorder",bp::init<const BlockType &, const BlockType & >())
+        .def(bp::init<>())
+        .def("__str__",&BlockWithBorderType::str)
+    ;
+
+
 
 }

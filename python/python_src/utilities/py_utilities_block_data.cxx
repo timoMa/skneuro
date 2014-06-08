@@ -42,7 +42,10 @@ struct BlockDataHelper{
         vigra::NumpyArray<3,T> out 
     ){
         out.reshapeIfEmpty(blockWithBorder.blockWithBorderShape());
-        skneuro::extractBlock(blockWithBorder,totalData,out);
+        {
+            vigra::PyAllowThreads _pythread;
+            skneuro::extractBlock(blockWithBorder,totalData,out);
+        }
         return out;
     }
 
@@ -52,7 +55,10 @@ struct BlockDataHelper{
         const vigra::NumpyArray<3,T> & blockData,
         vigra::NumpyArray<3,T> totalData
     ){
-        skneuro::writeFromBlock(blockWithBorder, blockData, totalData);
+        {
+            vigra::PyAllowThreads _pythread;
+            skneuro::writeFromBlock(blockWithBorder, blockData, totalData);
+        }
     }
 
 };

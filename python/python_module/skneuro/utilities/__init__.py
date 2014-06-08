@@ -1,6 +1,21 @@
 from _utilities import *
+from thread_pool import ThreadPool
+from blockwise_caller import blockwiseCaller 
 from cStringIO import StringIO
 import sys
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def boostPythonInjector(clsToExtend):
     class Injector(object):
@@ -16,17 +31,6 @@ def boostPythonInjector(clsToExtend):
 
 def extendBlocking3d():
     class MoreBlocking3d(boostPythonInjector(Blocking3d), Blocking3d):
-        def foo(self):
-            print 'foo!'
-
-        def writeBlock(self, block, blockData, totalData):
-            # call c++ to unlock gil if possible
-            pass
-
-        def readBlock(self, block, totalData, out=None):
-            # call c++ to unlock gil if possible
-            return out
-
         def __str__(self):
 
             old_stdout = sys.stdout
@@ -39,3 +43,8 @@ def extendBlocking3d():
             return mystdout.getvalue()
 extendBlocking3d()
 del extendBlocking3d
+
+
+
+
+

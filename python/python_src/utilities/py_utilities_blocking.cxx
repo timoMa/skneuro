@@ -54,9 +54,8 @@ void export_blocking(){
 
 
 
-    typedef Block<int, 3>  BlockType;
-    typedef Blocking<int, 3>  BlockingType;
-
+    typedef skneuro::Block<int, 3>  BlockType;
+    typedef skneuro::Blocking<int, 3>  BlockingType;
     typedef BlockType::Vector CoordType;
     typedef BlockingHelper<BlockingType> BlockingHelperType;
 

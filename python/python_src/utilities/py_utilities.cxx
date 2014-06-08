@@ -23,7 +23,7 @@
 
 void export_block();
 void export_blocking();
-
+void export_block_data();
 
 // export my module
 BOOST_PYTHON_MODULE_INIT(_utilities) {
@@ -37,5 +37,5 @@ BOOST_PYTHON_MODULE_INIT(_utilities) {
 
     export_block();
     export_blocking();
-
+    export_block_data();
 }

@@ -56,8 +56,8 @@ void export_block(){
     // No not change 4 line above
 
 
-    typedef Block<int, 3>  BlockType;
-    typedef BlockWithBorder<int, 3> BlockWithBorderType;
+    typedef skneuro::Block<int, 3>  BlockType;
+    typedef skneuro::BlockWithBorder<int, 3> BlockWithBorderType;
     typedef BlockType::Vector CoordType;
     typedef BlockHelper<BlockType> BlockHelperType;
 
@@ -74,6 +74,8 @@ void export_block(){
     bp::class_<BlockWithBorderType>("BlockWithBorder",bp::init<const BlockType &, const BlockType & >())
         .def(bp::init<>())
         .def("__str__",&BlockWithBorderType::str)
+        .def("blockShape",&BlockWithBorderType::blockShape )
+        .def("blockWithBorderShape",&BlockWithBorderType::blockWithBorderShape )
     ;
 
 

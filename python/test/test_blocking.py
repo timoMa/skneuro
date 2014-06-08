@@ -1,5 +1,6 @@
 from skneuro import utilities
 from skneuro import denoising
+from skneuro import blockwise_filters
 import numpy
 import sys
 
@@ -10,6 +11,16 @@ blockShape = [100, 100, 100]
 
 totalData = numpy.random.rand(*shape).astype(numpy.float32)
 resultData = numpy.random.rand(*shape).astype(numpy.float32)
+
+
+
+result = blockwise_filters.blockwiseGaussianSmoothing(totalData,1.0,nThreads=3)
+
+
+
+sys.exit(0)
+
+
 
 
 blockwiseCaller  = utilities.blockwiseCaller
@@ -23,5 +34,5 @@ blockwiseCaller(
     nThreads=4,
     inputKwargs=dict(image=totalData),
     paramKwagrs=dict(sigma=2.0),
-    output=resultData
+    out=resultData
 )

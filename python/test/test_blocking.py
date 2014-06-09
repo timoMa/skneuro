@@ -6,13 +6,16 @@ import sys
 
 
 
-shape = [400, 200, 200]
-blockShape = [64, 64, 64]
+def test_blockwise_gauss():
 
-totalData = numpy.random.rand(*shape).astype(numpy.float32)
+    shape = [100, 100, 100]
+    blockShape = [32, 32, 32]
 
-print "blockwiseGaussianSmoothing"
-result = blockwise_filters.blockwiseGaussianSmoothing(totalData,1.0,nThreads=3,blockShape=blockShape)
-print "blockwiseGaussianGradientMagnitude"
-result = blockwise_filters.blockwiseGaussianGradientMagnitude(totalData,1.0,nThreads=3,blockShape=blockShape)
-print "done"
+    totalData = numpy.random.rand(*shape).astype(numpy.float32)
+
+    print "blockwiseGaussianSmoothing"
+    result = blockwise_filters.blockwiseGaussianSmoothing(totalData,1.0,nThreads=3,blockShape=blockShape)
+    print "blockwiseGaussianGradientMagnitude"
+    result = blockwise_filters.blockwiseGaussianGradientMagnitude(totalData,1.0,nThreads=3,blockShape=blockShape)
+    print "done"
+    

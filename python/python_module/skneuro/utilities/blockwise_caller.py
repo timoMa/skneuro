@@ -1,4 +1,5 @@
 from _utilities import Blocking3d, extractBlock, writeFromBlock
+
 from thread_pool import ThreadPool
 import vigra
 import numpy
@@ -7,14 +8,14 @@ from sys import stdout
 
 def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, out,
                     verbose=True, printNth=10):
-    shape = inputKwargs.itervalues().next()
+    shape = inputKwargs.itervalues().next().shape
     blocking = Blocking3d(shape,blockShape)
     nBlocks = len(blocking)
     pool = ThreadPool(nThreads)
 
 
     def threadFunction(f, blocking, blockIndex, margin, inputKwargs, paramKwagrs, out, lock, 
-                       doneBlocks=None, printNth=10):
+                       doneBlocks=None, printNth=5):
         # get the block with border / margin
         block = blocking.blockWithBorder(blockIndex, width=10)
 

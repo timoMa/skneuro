@@ -23,7 +23,7 @@
 
 
 void exportNonLocalMean();
-
+void exportBallRankOrder();
 // export my module
 BOOST_PYTHON_MODULE_INIT(_denoising) {
 
@@ -34,6 +34,7 @@ BOOST_PYTHON_MODULE_INIT(_denoising) {
     boost::python::docstring_options docstringOptions(true,true,false);
     // No not change 4 line above
 
-    //export_very_non_local_mean();
+
     exportNonLocalMean();
+    exportBallRankOrder();
 }

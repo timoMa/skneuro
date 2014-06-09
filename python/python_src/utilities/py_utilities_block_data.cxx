@@ -103,7 +103,7 @@ void export_block_data_t(){
 
 
 void export_block_data(){
-    export_block_data_t<float>;
-    export_block_data_t< vigra::Singleband<float> >;
-    export_block_data_t< vigra::TinyVector<float, 3> >;
+    export_block_data_t<float>();
+    export_block_data_t< vigra::Singleband<float> >();
+    export_block_data_t< vigra::TinyVector<float, 3> >();
 }

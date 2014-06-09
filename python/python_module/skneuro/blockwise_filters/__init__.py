@@ -6,18 +6,46 @@ import vigra
 
 
 
-def _prepare(shape, blockShape=None, out=None, dtype=numpy.float32):
+def _prepare(shape, blockShape=None, out=None, dtype=numpy.float32, 
+             channels=1):
     if blockShape is None:
         blockShape = [min(s, 100) for s in shape]
     if out is None:
-        out = numpy.empty(shape=shape, dtype=dtype)
+        if channels>1:
+            s = tuple(shape)+(channels,)
+        else :
+            s = shape
+        out = numpy.empty(shape=s, dtype=dtype)
 
     return blockShape, out
 
 
 def blockwiseGaussianSmoothing(image, sigma, out=None, blockShape=None, nThreads=cpu_count()):
     blockShape, out = _prepare(image.shape, blockShape)
-    margin = int(2.0*sigma + 1.0+0.5)
+    margin = int(4.0*sigma + 1.0+0.5)
+
+    func = denoising.gaussianSmoothing
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
+        paramKwagrs=dict(sigma=sigma), out=out)
+    return out
+
+
+
+def blockwiseMedianSmoothing(image, radius, mode='reflect', cval=0.0, origin=0,
+                             blockShape=None, nThreads=cpu_count()):
+    blockShape, out = _prepare(image.shape, blockShape)
+    margin = int(radius + 1)
+
+    func = denoising.medianSmoothing
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
+        paramKwagrs=dict(radius=radius, mode=mode, cval=cval, origin=origin), out=out)
+    return out
+
+
+
+def blockwiseGaussianSmoothing(image, sigma, out=None, blockShape=None, nThreads=cpu_count()):
+    blockShape, out = _prepare(image.shape, blockShape)
+    margin = int(4.0*sigma + 1.0+0.5)
 
     func = denoising.gaussianSmoothing
     _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
@@ -52,13 +80,13 @@ def blockwiseStructureTensorSortedEigenvalues(image,  innerScale, outerScale, ou
 
     def func(image,  innerScale, outerScale, out=None):
         img = vigra.taggedView(image, 'xyz')
-        out = vigra.filters.structreTensorEigenvalues(img, innerScale=innerScale, outerScale=outerScale, out=out)
+        out = vigra.filters.structureTensorEigenvalues(img, innerScale=innerScale, outerScale=outerScale, out=out)
         out = numpy.sort(out, axis=3)
         return out
-    blockShape, out = _prepare(image.shape, blockShape)
+    blockShape, out = _prepare(image.shape, blockShape, channels=3)
     margin = int(2.0*max(innerScale, outerScale) + 1.0+0.5)
 
-    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(volume=image),
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
         paramKwagrs=dict(innerScale=innerScale, outerScale=outerScale), out=out)
     return out
 
@@ -71,10 +99,10 @@ def blockwiseHessianOfGaussianSortedEigenvalues(image,  scale, out=None, blockSh
         out = numpy.sort(out, axis=3)
         return out
 
-    blockShape, out = _prepare(image.shape, blockShape)
+    blockShape, out = _prepare(image.shape, blockShape, channels=3)
     margin = int(2.0*scale + 1.0+0.5)
 
-    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(volume=image),
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
         paramKwagrs=dict(scale=scale), out=out)
     return out
 
@@ -84,4 +112,17 @@ def binwiseDistaneTransform(image, minmax, bins):
 
 
 def hist_plus_non_linear_smooth_stuff():
+    pass
+
+
+
+def smooth_neuron_prob_map():
+    pass
+
+def smooth_mitochondria_prob_map():
+    pass
+
+
+
+def bin_wise_non_local_mean():
     pass

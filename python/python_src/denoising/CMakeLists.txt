@@ -9,6 +9,7 @@
 add_library( _denoising SHARED  py_denoising.cxx
     py_denoising.cxx
     py_denoising_non_local_mean.cxx
+    py_denoising_ball_rank_order.cxx
 )
 
 

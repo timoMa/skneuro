@@ -86,7 +86,7 @@ public:
 
     BlockType blockLocalCoordinates()const{
         BlockType res=block_;
-        res-=block_.begin();
+        res-=blockWithAddedBorder_.begin();
         return res;
     }
 

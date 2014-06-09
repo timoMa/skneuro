@@ -65,8 +65,8 @@ struct BlockDataHelper{
 
 
 
-
-void export_block_data(){
+template<class T>
+void export_block_data_t(){
     // Do not change next 4 lines
     //import_array(); 
     //vigra::import_vigranumpy();
@@ -83,7 +83,7 @@ void export_block_data(){
 
 
     bp::def("extractBlock",
-        vigra::registerConverters(&Helper::extractBlock_3<float>),
+        vigra::registerConverters(&Helper::extractBlock_3<T>),
         (
             bp::arg("blockWithBorder"),
             bp::arg("totalData"),
@@ -92,11 +92,18 @@ void export_block_data(){
     );
 
     bp::def("writeFromBlock",
-        vigra::registerConverters(&Helper::writeFromBlock_3<float>),
+        vigra::registerConverters(&Helper::writeFromBlock_3<T>),
         (
             bp::arg("blockWithBorder"),
             bp::arg("blockData"),
             bp::arg("totalData")
         )
     );
+}
+
+
+void export_block_data(){
+    export_block_data_t<float>;
+    export_block_data_t< vigra::Singleband<float> >;
+    export_block_data_t< vigra::TinyVector<float, 3> >;
 }

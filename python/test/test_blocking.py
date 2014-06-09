@@ -7,12 +7,12 @@ import sys
 
 
 shape = [400, 200, 200]
-blockShape = [100, 100, 100]
+blockShape = [64, 64, 64]
 
 totalData = numpy.random.rand(*shape).astype(numpy.float32)
-resultData = numpy.random.rand(*shape).astype(numpy.float32)
 
-
-result = blockwise_filters.blockwiseGaussianSmoothing(totalData,1.0,nThreads=3)
-result = blockwise_filters.blockwiseGaussianGradientMagnitude(totalData,1.0,nThreads=3)
-
+print "blockwiseGaussianSmoothing"
+result = blockwise_filters.blockwiseGaussianSmoothing(totalData,1.0,nThreads=3,blockShape=blockShape)
+print "blockwiseGaussianGradientMagnitude"
+result = blockwise_filters.blockwiseGaussianGradientMagnitude(totalData,1.0,nThreads=3,blockShape=blockShape)
+print "done"

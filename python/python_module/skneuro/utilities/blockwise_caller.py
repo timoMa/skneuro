@@ -2,14 +2,19 @@ from _utilities import Blocking3d, extractBlock, writeFromBlock
 from thread_pool import ThreadPool
 import vigra
 import numpy
+import threading
+from sys import stdout
 
-def blockwiseCaller(f, margin, shape, blockShape, nThreads, inputKwargs, paramKwagrs, out):
-
+def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, out,
+                    verbose=True, printNth=10):
+    shape = inputKwargs.itervalues().next()
     blocking = Blocking3d(shape,blockShape)
     nBlocks = len(blocking)
     pool = ThreadPool(nThreads)
 
-    def threadFunction(f, blocking, blockIndex, margin, inputKwargs, paramKwagrs, out, doneBlocks):
+
+    def threadFunction(f, blocking, blockIndex, margin, inputKwargs, paramKwagrs, out, lock, 
+                       doneBlocks=None, printNth=10):
         # get the block with border / margin
         block = blocking.blockWithBorder(blockIndex, width=10)
 
@@ -26,15 +31,29 @@ def blockwiseCaller(f, margin, shape, blockShape, nThreads, inputKwargs, paramKw
         blockOutput = f(**kwargs).squeeze()
         #write back to global out
         writeFromBlock(block, blockOutput, out)
-        doneBlocks[blockIndex] = 1
-        print doneBlocks.sum(), "/", nBlocks
 
-    doneBlocks = numpy.zeros(nBlocks)
+        if doneBlocks is not None:
+            doneBlocks[blockIndex] = 1
+            if blockIndex % printNth == 0:
+                p = doneBlocks.sum()/float(nBlocks)*100.0
+                lock.acquire(True)
+                #"%.*f" % ( n, f )
+                stdout.write("\r%.*f %%" % (2,p))
+                stdout.flush()
+                lock.release()
+
+    lock = threading.Lock()
+    doneBlocks = None
+    if verbose:
+        doneBlocks = numpy.zeros(nBlocks)
     for blockIndex in range(nBlocks):
 
         # 2) Add the task to the queue
         pool.add_task(threadFunction, f=f, blocking=blocking, margin=margin,
                       blockIndex=blockIndex, inputKwargs=inputKwargs,
-                      paramKwagrs=paramKwagrs, out=out, doneBlocks=doneBlocks)
+                      paramKwagrs=paramKwagrs, out=out, lock=lock, doneBlocks=doneBlocks)
 
     pool.wait_completion()
+    if verbose:
+        stdout.write("\r100.000000 %%")
+        stdout.write("\n")

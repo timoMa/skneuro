@@ -6,10 +6,14 @@ from functools import partial
 from scipy.ndimage.filters import median_filter
 from multiprocessing import cpu_count
 
+hasSkimageTv=True
 try:
     from skimage.filter import denoise_tv_bregman, denoise_tv_chambolle
 except:
-    from skimage.restoration import denoise_tv_bregman, denoise_tv_chambolle
+    try:
+        from skimage.restoration import denoise_tv_bregman, denoise_tv_chambolle
+    except:
+        hasSkimageTv=False
 
 def nonLocalMean(
     image,
@@ -51,67 +55,69 @@ def medianSmoothing(image,radius=None, footprint=None, mode='reflect', cval=0.0,
         out[:] = res[:]
         return res
 
-def tvBregman(image, weight, eps=0.001, maxIter=None, isotropic=True, out=None):
 
-    # to restore min max ?
-    restore=False
-    if image.min()<-1.0 or image.max()>1.0:
-        restore=True
-        gaussSmoothed = gaussianSmoothing(image,simga=1.0)
-        oldMin = gaussSmoothed.min()
-        oldMax = gaussSmoothed.max()
-        image-=image.min()
-        image/=image.max()
+if hasSkimageTv:
+    def tvBregman(image, weight, eps=0.001, maxIter=None, isotropic=True, out=None):
 
-
-    kwargs = dict(image=image, weight=weight, eps=eps, isotropic=isotropic)
-    if maxIter is not None :
-        kwargs['maxIter']=maxIter
-
-    res = denoise_tv_bregman(**kwargs)
-
-    if restore:
-        res -= res.min()
-        res /= res.max()
-        res *= (oldMax-oldMin)
-        res += oldMin
-
-    if out is None:
-        return res
-    else :
-        out[:] = res[:]
-        return out
+        # to restore min max ?
+        restore=False
+        if image.min()<-1.0 or image.max()>1.0:
+            restore=True
+            gaussSmoothed = gaussianSmoothing(image,simga=1.0)
+            oldMin = gaussSmoothed.min()
+            oldMax = gaussSmoothed.max()
+            image-=image.min()
+            image/=image.max()
 
 
-def tvChambolle(image, weight, eps=0.001, maxIter=None, out=None):
+        kwargs = dict(image=image, weight=weight, eps=eps, isotropic=isotropic)
+        if maxIter is not None :
+            kwargs['maxIter']=maxIter
 
-    # to restore min max ?
-    restore=False
-    if image.min() < 1.0 or image.max() > 1.0:
-        restore=True
-        gaussSmoothed = gaussianSmoothing(image, simga=1.0)
-        oldMin = gaussSmoothed.min()
-        oldMax = gaussSmoothed.max()
-        image -= image.min()
-        image /= image.max()
+        res = denoise_tv_bregman(**kwargs)
 
-    kwargs = dict(im=image, weight=weight, eps=eps, multichannel=False)
+        if restore:
+            res -= res.min()
+            res /= res.max()
+            res *= (oldMax-oldMin)
+            res += oldMin
 
-    if maxIter is not None:
-        kwargs['n_iter_max'] = maxIter
+        if out is None:
+            return res
+        else :
+            out[:] = res[:]
+            return out
 
-    res = denoise_tv_chambolle(**kwargs)
-    if restore:
-        res -= res.min()
-        res /= res.max()
-        res *= (oldMax-oldMin)
-        res += oldMin
 
-    if out is None:
-        return res
-    else:
-        out[:] = res[:]
-        return out
+    def tvChambolle(image, weight, eps=0.001, maxIter=None, out=None):
+
+        # to restore min max ?
+        restore=False
+        if image.min() < 1.0 or image.max() > 1.0:
+            restore=True
+            gaussSmoothed = gaussianSmoothing(image, simga=1.0)
+            oldMin = gaussSmoothed.min()
+            oldMax = gaussSmoothed.max()
+            image -= image.min()
+            image /= image.max()
+
+        kwargs = dict(im=image, weight=weight, eps=eps, multichannel=False)
+
+        if maxIter is not None:
+            kwargs['n_iter_max'] = maxIter
+
+        res = denoise_tv_chambolle(**kwargs)
+        if restore:
+            res -= res.min()
+            res /= res.max()
+            res *= (oldMax-oldMin)
+            res += oldMin
+
+        if out is None:
+            return res
+        else:
+            out[:] = res[:]
+            return out
 
 
 def anisotropicSmoothing():

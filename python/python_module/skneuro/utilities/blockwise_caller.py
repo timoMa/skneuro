@@ -15,7 +15,7 @@ def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, o
 
 
     def threadFunction(f, blocking, blockIndex, margin, inputKwargs, paramKwagrs, out, lock, 
-                       doneBlocks=None, printNth=5):
+                       doneBlocks=None, printNth=20):
         # get the block with border / margin
         block = blocking.blockWithBorder(blockIndex, width=10)
 

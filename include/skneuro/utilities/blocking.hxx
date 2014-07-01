@@ -141,6 +141,10 @@ public:
         SKNEURO_CHECK_OP(DIMENSION,==,3,"currently only implemented for 3D");
 
         CoordType blockStart(0);
+        //for(blockStart[0]=0; blockStart[0]<shape[0]; blockStart[0]+=blockShape[0])
+        //for(blockStart[1]=0; blockStart[1]<shape[1]; blockStart[1]+=blockShape[1])
+        //for(blockStart[2]=0; blockStart[2]<shape[2]; blockStart[2]+=blockShape[2]){
+
         for(blockStart[2]=0; blockStart[2]<shape[2]; blockStart[2]+=blockShape[2])
         for(blockStart[1]=0; blockStart[1]<shape[1]; blockStart[1]+=blockShape[1])
         for(blockStart[0]=0; blockStart[0]<shape[0]; blockStart[0]+=blockShape[0]){
@@ -194,6 +198,10 @@ void extractBlock(
 
     CoordType totalCoord;
     CoordType blockCoord;
+    //for(totalCoord[0]=begin[0],blockCoord[0]=0; totalCoord[0]<end[0]; ++totalCoord[0],++blockCoord[0])
+    //for(totalCoord[1]=begin[1],blockCoord[1]=0; totalCoord[1]<end[1]; ++totalCoord[1],++blockCoord[1])
+    //for(totalCoord[2]=begin[2],blockCoord[2]=0; totalCoord[2]<end[2]; ++totalCoord[2],++blockCoord[2]){
+
     for(totalCoord[2]=begin[2],blockCoord[2]=0; totalCoord[2]<end[2]; ++totalCoord[2],++blockCoord[2])
     for(totalCoord[1]=begin[1],blockCoord[1]=0; totalCoord[1]<end[1]; ++totalCoord[1],++blockCoord[1])
     for(totalCoord[0]=begin[0],blockCoord[0]=0; totalCoord[0]<end[0]; ++totalCoord[0],++blockCoord[0]){

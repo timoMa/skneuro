@@ -41,6 +41,7 @@ vigra::NumpyAnyArray  pyNonLocalMean(
     const int patchRadius,
     const double sigmaMean,
     const int stepSize,
+    const double wTruncate,
     const int iterations,
     const int nThreads,
     const bool verbose,
@@ -54,6 +55,7 @@ vigra::NumpyAnyArray  pyNonLocalMean(
     param.patchRadius_=patchRadius;
     param.sigmaMean_=sigmaMean;
     param.stepSize_=stepSize;
+    param.wTruncate_=wTruncate;
     param.iterations_=iterations;
     param.nThreads_ = nThreads;
     param.verbose_=verbose;
@@ -123,6 +125,7 @@ void exportNonLocalMean_template(const std::string name){
             bp::arg("patchRadius")=1,
             bp::arg("sigmaMean")=1.0,
             bp::arg("stepSize")=2,
+            bp::arg("wTruncate")=0.0,
             bp::arg("iterations")=1,
             bp::arg("nThreads")=8,
             bp::arg("verbose")=true,
@@ -150,7 +153,7 @@ void exportNonLocalMean(){
     // export different parameter objects
     exportNonLocalMeanPolicyParameterObjects();
 
-    exportNonLocalMean_template<3,float, skneuro::RatioPolicy<float> >("_nonLocalMean3d");
-    exportNonLocalMean_template<3,float, skneuro::NormPolicy<float> >("_nonLocalMean3d");
+    exportNonLocalMean_template<3,double, skneuro::RatioPolicy<double> >("_nonLocalMean3d");
+    exportNonLocalMean_template<3,double, skneuro::NormPolicy<double> >("_nonLocalMean3d");
 
 }

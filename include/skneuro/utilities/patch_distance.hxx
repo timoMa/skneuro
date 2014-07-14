@@ -2,10 +2,13 @@
 
 
 
-template<class DIM, class T, class F> 
+template<class T, class F> 
 class PatchDistance{
 
-    PatchDistance(vigra::MultiArrayView<DIM,T> image)
+    PatchDistance(
+        vigra::MultiArrayView<3,T> image,
+        
+    )
     :   image_(image){
     }
 
@@ -16,7 +19,7 @@ class PatchDistance{
         const COORD & coordB,
         const RADIUS & patchRadius
     ){
-        vigra::TinyVector<int,DIM>  offset,coordAA,coordBB;
+        vigra::TinyVector<int,3>  offset,coordAA,coordBB;
 
         F res=0;
 

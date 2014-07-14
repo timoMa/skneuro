@@ -44,6 +44,7 @@ struct NonLocalMeanParameter{
         const int patchRadius = 1,
         const double sigmaMean = 1.0,
         const int stepSize = 2,
+        const double wTruncate = 0.0,
         const int iterations=1,
         const int nThreads = 8,
         const bool verbose = true
@@ -53,6 +54,7 @@ struct NonLocalMeanParameter{
     patchRadius_(patchRadius),
     sigmaMean_(sigmaMean),
     stepSize_(stepSize),
+    wTruncate_(wTruncate),
     iterations_(iterations),
     nThreads_(nThreads),
     verbose_(verbose){
@@ -62,6 +64,7 @@ struct NonLocalMeanParameter{
     int patchRadius_;
     double sigmaMean_;
     int stepSize_;
+    double wTruncate_;
     int iterations_;
     int nThreads_;
     bool verbose_;
@@ -602,9 +605,16 @@ inline void BlockWiseNonLocalMeanThreadObject<DIM, PIXEL_TYPE_IN, SMOOTH_POLICY>
             if(smoothPolicy_.usePixelPair(meanImage_[xyz],varImage_[xyz],meanImage_[nxyz],varImage_[nxyz])){                
                 const RealPromoteScalarType distance =this->patchDistance<ALWAYS_INSIDE>(xyz,nxyz);
                 const RealPromoteScalarType w = smoothPolicy_.distanceToWeight(meanImage_[xyz],varImage_[xyz],distance);
-                wmax = std::max(w,wmax);
-                this->patchExtractAndAcc<ALWAYS_INSIDE>(nxyz,w);
-                totalweight+=  w;
+
+                //estimateMutexPtr_->lock();  
+                //std::cout<<"weight "<<w<<"\n";
+                //estimateMutexPtr_->unlock();  
+
+                if(w>param_.wTruncate_){
+                    wmax = std::max(w,wmax);
+                    this->patchExtractAndAcc<ALWAYS_INSIDE>(nxyz,w);
+                    totalweight+=  w;
+                }
             }
         }
     }
@@ -869,12 +879,14 @@ void nonLocalMean1Run(
 
         // thread ptr
         std::vector<ThreadType *> threadPtrs(nThreads);
+        std::cout<<"shape "<<image.shape(DIM-1)<<"\n";
         for(size_t i=0; i<nThreads; ++i){
             ThreadObjectType & threadObj = threadObjects[i];
             threadObj.setThreadIndex(i);
             typename ThreadObjectType::RangeType lastAxisRange;
-            lastAxisRange[0]=(i * image.shape(DIM-1)) / nThreads;
-            lastAxisRange[1]=((i+1) * image.shape(DIM-1)) / nThreads;
+            lastAxisRange[0] = (i * image.shape(DIM-1)) / nThreads;
+            lastAxisRange[1] = ((i+1) * image.shape(DIM-1)) / nThreads;
+            std::cout<<"s "<<lastAxisRange[0]<<" e "<<lastAxisRange[1]<<"\n";
             threadObj.setRange(lastAxisRange);
             // this will start the threads and cal operator() 
             // of the threadObjects

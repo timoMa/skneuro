@@ -23,6 +23,7 @@ def nonLocalMean(
     sigmaSpatial=1.0,
     sigmaPresmoothing=1.0,
     stepSize=2,
+    wTruncate=0.0,
     iterations=1,
     nThreads=None,
     verbose=True,
@@ -33,8 +34,8 @@ def nonLocalMean(
 
     return _nonLocalMean3d(
         image=image, policy=policy, sigmaSpatial=sigmaSpatial, searchRadius=searchRadius, patchRadius=patchRadius,
-        sigmaMean=sigmaPresmoothing, stepSize=stepSize, iterations=iterations, nThreads=nThreads, verbose=verbose,
-        out=out
+        sigmaMean=sigmaPresmoothing, stepSize=stepSize, wTruncate=wTruncate, iterations=iterations, nThreads=nThreads,
+        verbose=verbose, out=out
     )
 
 

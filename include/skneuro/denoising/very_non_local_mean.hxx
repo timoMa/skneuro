@@ -28,42 +28,11 @@
 */
 
 
-
-template<class DIM, class T, class F> 
-class PreSelectivePatchDistance{
-
-    typedef PatchDistance<DIM,T,F> PatchDistanceType;
-
-
-    PreSelectivePatchDistance(vigra::MultiArrayView<DIM,T> image)
-    :   image_(image){
-    }
-
-
-    template<class COORD,class RADIUS>
-    F operator()(
-        const COORD & coordA,
-        const COORD & coordB,
-        const RADIUS & patchRadius
-    ){
-        F ratio  image_(coordA) / image_(coordB);
-        
-    }
-
-    vigra::MultiArrayView<DIM,T> image_;
-    PatchDistanceType patchDistance_;
-};
-
-
-
-
-
-template< unsigned int DIM, class T, class PATCH_DISTANCE>
+template<class T>
 class VeryNonLocalMean{
 
-    typedef vigra::TinyVector<T,DIM> CoordType;
-    typedef PATCH_DISTANCE PatchDistance;
-    typedef typename PatchDistance::WeightType WeightType;
+    typedef vigra::TinyVector<int,3> CoordType;
+    typedef float WeightType;
     typedef long double EstimateType;
     typedef long double EstimateScalarType;
     struct ParameterType{
@@ -71,7 +40,7 @@ class VeryNonLocalMean{
     };
 
 
-    VeryNonLocalMean
+
 
     void run(){
 
@@ -82,21 +51,21 @@ class VeryNonLocalMean{
         for(coordA[2]=0; coordA[2]<shape_[2]; ++coordA[2])
         for(coordA[1]=0; coordA[1]<shape_[1]; ++coordA[1])
         for(coordA[0]=0; coordA[0]<shape_[0]; ++coordA[0]){
-            fullSmoothing(coord);
+            fullSmoothing(coordA);
         }
 
     }
 
 
     void fullSmoothing(
-        const CoordType & coorA
+        const CoordType & coordA
     ){
 
         CoordType coordB;
         for(coordB[2]=0; coordB[2]<shape_[2]; ++coordB[2])
         for(coordB[1]=0; coordB[1]<shape_[1]; ++coordB[1])
         for(coordB[0]=0; coordB[0]<shape_[0]; ++coordB[0]){
-            if(coordA != corrdB){
+            if(coordA != coordB){
                 evaluatePair(coordA,coordB);
             }
         }
@@ -133,25 +102,19 @@ class VeryNonLocalMean{
     }
 
     CoordType shape_;
-    PatchDistance patchDitance_;
-
-    vigra::MultiArray<DIM,EstimateType> weightedSumImage_;
-    vigra::MultiArray<DIM,WeightType>   weightSumImage_;
+    vigra::MultiArray<3,EstimateType> weightedSumImage_;
+    vigra::MultiArray<3,WeightType>   weightSumImage_;
 };
 
 
 
 
-template<unsigned int DIM, class T_IN, class T_OUT>
+template<class T_IN, class T_OUT>
 void veryNonLocalMean(
-    const vigra::MultiArrayView<DIM,T_IN> & image
-    const vigra::MultiArrayView<DIM,T_IN> & image
+    const vigra::MultiArrayView<3,T_IN> & image
     vigra::MultiArrayView<DIM,T_IN> & out
 ){
 
-    //typedef PreSelectivePatchDistance<DIM,T_IN,T_OUT> patchDistance;
-
-    //VeryNonLocalMean<DIM,T>
-
+    std::cout<<"thats all so far\n";
 }
 

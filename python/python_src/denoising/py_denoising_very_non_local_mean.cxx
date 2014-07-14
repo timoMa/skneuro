@@ -30,6 +30,14 @@
 namespace bp = boost::python;
 
 
+vigra::NumpyAnyArray pyVeryNonLocalMean(
+    vigra::NumpyArray<3,float> input,
+    vigra::NumpyArray<3,float> out
+){
+    out.reshapeIfEmpty(input.taggedShape());
+}
+
+
 
 
 void export_very_non_local_mean(){
@@ -41,10 +49,13 @@ void export_very_non_local_mean(){
     // No not change 4 line above
 
 
-    typedef PreSelectivePatchDistance<3, float, float> PyPatchDistanceType;
-    typedef VeryNonLocalMean<3, float, PyPatchDistanceType> PyVeryNonLocalMean;
 
+    bp::def("veryNonLocalMean",vigra::registerConveters(pyVeryNonLocalMean),
+        (
+            bp::arg("image"),
+            bp::arg("out")=bp::object()
+        )
+    );
 
-    bp::class_<PyVeryNonLocalMean>("VeryNonLocalMean3d")
-    ;
+    
 }

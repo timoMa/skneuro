@@ -5,9 +5,12 @@ import vigra
 import numpy
 import threading
 from sys import stdout
+from multiprocessing import cpu_count
 
 def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, out,
                     verbose=True, printNth=10):
+    if nThreads is None:
+        nThreads = cpu_count()
     shape = inputKwargs.itervalues().next().shape
     blocking = Blocking3d(shape,blockShape)
     nBlocks = len(blocking)
@@ -31,7 +34,10 @@ def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, o
         # do computations
         blockOutput = f(**kwargs).squeeze()
         #write back to global out
+
         writeFromBlock(block, blockOutput, out)
+
+
 
         if doneBlocks is not None:
             doneBlocks[blockIndex] = 1

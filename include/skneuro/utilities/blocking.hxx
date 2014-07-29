@@ -185,11 +185,11 @@ private:
 
 
 
-template<class COORDINATE,class T>
+template<class COORDINATE,class T_BLOCK, class T_TOTAL>
 void extractBlock(
     const BlockWithBorder<COORDINATE,3> & blockWithBorder,
-    const vigra::MultiArrayView<3,T> & totalData,
-    vigra::MultiArrayView<3,T> & blockData
+    const vigra::MultiArrayView<3,T_TOTAL> & totalData,
+    vigra::MultiArrayView<3,T_BLOCK> & blockData
 ){
     typedef typename BlockWithBorder<COORDINATE,3>::CoordType CoordType;
     CoordType begin = blockWithBorder.blockWithBorder().begin();
@@ -210,11 +210,11 @@ void extractBlock(
 }
 
 
-template<class COORDINATE,class T>
+template<class COORDINATE,class T_BLOCK, class T_TOTAL>
 void writeFromBlock(
     const BlockWithBorder<COORDINATE,3> & blockWithBorder,
-    const vigra::MultiArrayView<3,T> & blockData,
-    vigra::MultiArrayView<3,T> & totalData
+    const vigra::MultiArrayView<3,T_BLOCK> & blockData,
+    vigra::MultiArrayView<3,T_TOTAL> & totalData
 ){
     typedef typename BlockWithBorder<COORDINATE,3>::CoordType CoordType;
     const CoordType tBegin  = blockWithBorder.block().begin();

@@ -43,15 +43,6 @@ def blockwiseMedianSmoothing(image, radius, mode='reflect', cval=0.0, origin=0,
 
 
 
-def blockwiseGaussianSmoothing(image, sigma, out=None, blockShape=None, nThreads=cpu_count()):
-    blockShape, out = _prepare(image.shape, blockShape)
-    margin = int(4.0*sigma + 1.0+0.5)
-
-    func = denoising.gaussianSmoothing
-    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
-        paramKwagrs=dict(sigma=sigma), out=out)
-    return out
-
 
 def blockwiseGaussianGradientMagnitude(image, sigma, out=None, blockShape=None, nThreads=None):
     blockShape, out = _prepare(image.shape, blockShape)
@@ -80,8 +71,9 @@ def blockwiseStructureTensorSortedEigenvalues(image,  innerScale, outerScale, ou
 
     def func(image,  innerScale, outerScale, out=None):
         img = vigra.taggedView(image, 'xyz')
-        out = vigra.filters.structureTensorEigenvalues(img, innerScale=innerScale, outerScale=outerScale, out=out)
+        out = vigra.filters.structureTensorEigenvalues(img, innerScale=innerScale, outerScale=outerScale, out=out).squeeze()
         out = numpy.sort(out, axis=3)
+        print "local out",out.shape. out.dtype
         return out
     blockShape, out = _prepare(image.shape, blockShape, channels=3)
     margin = int(2.0*max(innerScale, outerScale) + 1.0+0.5)
@@ -94,12 +86,30 @@ def blockwiseStructureTensorSortedEigenvalues(image,  innerScale, outerScale, ou
 def blockwiseHessianOfGaussianSortedEigenvalues(image,  scale, out=None, blockShape=None, nThreads=None):
 
     def func(image,  scale, out=None):
-        img = vigra.taggedView(image, 'xyz')
-        out = vigra.filters.hessianOfGaussianEigenvalues(img, scale=scale, out=out)
+        fImg  = numpy.require(image, dtype=numpy.float32)
+        fImg = vigra.taggedView(fImg, 'xyz')
+        out = vigra.filters.hessianOfGaussianEigenvalues(fImg, scale=scale, out=out)
         out = numpy.sort(out, axis=3)
         return out
 
     blockShape, out = _prepare(image.shape, blockShape, channels=3)
+    margin = int(2.0*scale + 1.0+0.5)
+
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
+        paramKwagrs=dict(scale=scale), out=out)
+    return out
+
+
+def blockwiseHessianOfGaussianLargestEigenvalues(image,  scale, out=None, blockShape=None, nThreads=None):
+
+    def func(image,  scale, out=None):
+        fImg  = numpy.require(image, dtype=numpy.float32)
+        fImg = vigra.taggedView(fImg, 'xyz')
+        out = vigra.filters.hessianOfGaussianEigenvalues(fImg, scale=scale, out=out)
+        out = numpy.max(out, axis=3)
+        return out
+
+    blockShape, out = _prepare(image.shape, blockShape)
     margin = int(2.0*scale + 1.0+0.5)
 
     _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),

@@ -87,7 +87,7 @@ def prepareMinMap(raw, pmap, sPre=0.8, sInt=5.0, mapInterval=0.5,
     """
 
 
-
+    print "prepare stuff"
     if tvWeightSoft is None and isotropicTvSoft:
         tvWeightSoft=5.0
     elif tvWeightSoft is None and isotropicTvSoft==False:
@@ -110,7 +110,7 @@ def prepareMinMap(raw, pmap, sPre=0.8, sInt=5.0, mapInterval=0.5,
 
 
 
-
+    print "pmap integral"
     # get pmap integral
     pmapIntegral = vigra.filters.gaussianSmoothing(numpy.require(pmap, dtype=numpy.float32), sigma=sInt )
     pmapIntegral = numpy.array(pmapIntegral)

@@ -35,11 +35,11 @@ struct BlockDataHelper{
     typedef BLOCK_WITH_BORDER BlockWithBorderType;
 
 
-    template<class T>
+    template<class T_BLOCK, class T_TOTAL>
     static vigra::NumpyAnyArray extractBlock_3(
         const BlockWithBorderType & blockWithBorder,
-        vigra::NumpyArray<3,T> totalData,
-        vigra::NumpyArray<3,T> out 
+        vigra::NumpyArray<3,T_TOTAL> totalData,
+        vigra::NumpyArray<3,T_BLOCK> out 
     ){
         out.reshapeIfEmpty(blockWithBorder.blockWithBorderShape());
         {
@@ -49,11 +49,11 @@ struct BlockDataHelper{
         return out;
     }
 
-    template<class T>
+    template<class T_BLOCK, class T_TOTAL>
     static void writeFromBlock_3(
         const BlockWithBorderType & blockWithBorder,
-        const vigra::NumpyArray<3,T> & blockData,
-        vigra::NumpyArray<3,T> totalData
+        const vigra::NumpyArray<3,T_BLOCK> & blockData,
+        vigra::NumpyArray<3,T_TOTAL> totalData
     ){
         {
             vigra::PyAllowThreads _pythread;
@@ -65,7 +65,7 @@ struct BlockDataHelper{
 
 
 
-template<class T>
+template<class T_BLOCK, class T_TOTAL>
 void export_block_data_t(){
     // Do not change next 4 lines
     //import_array(); 
@@ -83,7 +83,7 @@ void export_block_data_t(){
 
 
     bp::def("extractBlock",
-        vigra::registerConverters(&Helper::extractBlock_3<T>),
+        vigra::registerConverters(&Helper::extractBlock_3<T_BLOCK, T_TOTAL>),
         (
             bp::arg("blockWithBorder"),
             bp::arg("totalData"),
@@ -92,7 +92,7 @@ void export_block_data_t(){
     );
 
     bp::def("writeFromBlock",
-        vigra::registerConverters(&Helper::writeFromBlock_3<T>),
+        vigra::registerConverters(&Helper::writeFromBlock_3<T_BLOCK, T_TOTAL>),
         (
             bp::arg("blockWithBorder"),
             bp::arg("blockData"),
@@ -101,9 +101,17 @@ void export_block_data_t(){
     );
 }
 
+template<class T_BLOCK, class T_TOTAL>
+void export_block_data_tt(){
+    export_block_data_t< T_BLOCK , T_TOTAL>();
+    export_block_data_t< vigra::Singleband<T_BLOCK> ,vigra::Singleband<T_TOTAL> >();
+    export_block_data_t< vigra::TinyVector<T_BLOCK, 3> , vigra::TinyVector<T_TOTAL, 3> >();
+
+
+}
+
 
 void export_block_data(){
-    export_block_data_t<float>();
-    export_block_data_t< vigra::Singleband<float> >();
-    export_block_data_t< vigra::TinyVector<float, 3> >();
+    export_block_data_tt<float, float>();
+    export_block_data_tt<float, vigra::UInt8>();
 }

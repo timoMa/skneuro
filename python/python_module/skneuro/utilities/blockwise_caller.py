@@ -6,6 +6,7 @@ import numpy
 import threading
 from sys import stdout
 from multiprocessing import cpu_count
+import progressbar
 
 def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, out,
                     verbose=True, printNth=10):
@@ -18,7 +19,9 @@ def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, o
 
 
     def threadFunction(f, blocking, blockIndex, margin, inputKwargs, paramKwagrs, out, lock, 
-                       doneBlocks=None, printNth=20):
+                       doneBlocks=None, printNth=10):
+
+    
         # get the block with border / margin
         block = blocking.blockWithBorder(blockIndex, width=10)
 

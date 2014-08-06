@@ -1,0 +1,37 @@
+{
+    ////////////////////////////////
+    ///    INPUT OPTIONS
+    ////////////////////////////////
+    //name of the total dataset
+    "name" : "neuro_proof",
+
+    /*
+        BIOLOGICAL INFORMATION
+    */
+    "bio_info":{
+        "resolution" : [1.0,1.0,1.0] ,
+        "has_mito" : true,
+        "isotropic" : true
+    },
+
+    // where is the root input folder
+    "inputRootFolder" : "/mnt/CLAWS1/tbeier/data/knott1000/",
+
+    
+
+
+    // where is the root work folder 
+    "workRootFolder" : "/mnt/CLAWS1/tbeier/data/neuroproof_results/"
+
+    ////////////////////////////////
+    ///    PIPELINE OPTIONS
+    ////////////////////////////////
+
+
+
+    ////////////////////////////////
+    ///    PIPELINE OPTIONS
+    ////////////////////////////////
+
+
+}

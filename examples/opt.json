@@ -1,0 +1,57 @@
+{
+    ////////////////////////////////
+    ///    INPUT OPTIONS
+    ////////////////////////////////
+    //name of the total dataset
+    "name" : "neuro_proof",
+
+    /*
+        BIOLOGICAL INFORMATION
+    */
+    "bio_info":{
+        "resolution" : [1.0,1.0,1.0] ,
+        "has_mito" : true,
+        "isotropic" : true
+    },
+
+    // where is the root input folder
+    "input_root_folder" : "/home/tbeier/src/neuro_proof/",
+
+    // which datasets do we have
+    "dataset_samples" : {
+        "train1" : {
+            "raw_data" : "training_sample1/train1.h5",
+            "sample_type" : "train"
+        },
+        "train2" : {
+            "raw_data" : "training_sample2/train2.h5",
+            "groundtruth" : "training_sample2/groundtruth.h5",
+            "sample_type" : "train"
+        },
+        "test" : {
+            "raw_data" : "validation_sample/grayscale_maps/",
+            "groundtruth" : "validation_sample/groundtruth.h5",
+            "sample_type" : "test"
+        }
+
+    },
+
+    /*
+        WORKING FOLDER OPTIONS
+    */
+
+    // where is the root input folder
+    "work_root_folder" : "/home/tbeier/src/neuro_proof_results/"
+
+    ////////////////////////////////
+    ///    PIPELINE OPTIONS
+    ////////////////////////////////
+
+
+
+    ////////////////////////////////
+    ///    PIPELINE OPTIONS
+    ////////////////////////////////
+
+
+}

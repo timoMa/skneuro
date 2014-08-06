@@ -9,7 +9,7 @@ import vigra
 def _prepare(shape, blockShape=None, out=None, dtype=numpy.float32, 
              channels=1):
     if blockShape is None:
-        blockShape = [min(s, 100) for s in shape]
+        blockShape = [min(s, 64) for s in shape]
     if out is None:
         if channels>1:
             s = tuple(shape)+(channels,)
@@ -73,7 +73,6 @@ def blockwiseStructureTensorSortedEigenvalues(image,  innerScale, outerScale, ou
         img = vigra.taggedView(image, 'xyz')
         out = vigra.filters.structureTensorEigenvalues(img, innerScale=innerScale, outerScale=outerScale, out=out).squeeze()
         out = numpy.sort(out, axis=3)
-        print "local out",out.shape. out.dtype
         return out
     blockShape, out = _prepare(image.shape, blockShape, channels=3)
     margin = int(2.0*max(innerScale, outerScale) + 1.0+0.5)

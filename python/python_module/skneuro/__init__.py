@@ -1,6 +1,11 @@
-import volumina
+try:
+    hasVolumina=True
+    import volumina
+    from volumina.api import Viewer
+except:
+    hasVolumina=False
 import sys
-from volumina.api import Viewer
+
 from PyQt4.QtGui import QApplication
 import numpy
 import vigra

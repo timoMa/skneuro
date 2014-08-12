@@ -2,7 +2,6 @@
     ////////////////////////////////
     ///    INPUT OPTIONS
     ////////////////////////////////
-    //name of the total dataset
     "name" : "neuro_proof",
 
     /*
@@ -15,23 +14,44 @@
     },
 
     // where is the root input folder
-    "inputRootFolder" : "/mnt/CLAWS1/tbeier/data/knott1000/",
+    "inputRootFolder" : "/mnt/CLAWS1/tbeier/data/knott1000/knott-block-full2",
 
-    
+
+    // where is the raw data
+    "rawData" : "/mnt/CLAWS1/tbeier/data/knott1000/knott-block-full2/d.h5",
+    "rawDatasetName" : "sbfsem",
 
 
     // where is the root work folder 
-    "workRootFolder" : "/mnt/CLAWS1/tbeier/data/neuroproof_results/"
-
-    ////////////////////////////////
-    ///    PIPELINE OPTIONS
-    ////////////////////////////////
+    "workRootFolder" : "/mnt/CLAWS1/tbeier/data/neuroproof_results/",
 
 
+    // classification file(s)
+    // (also auto context pixel classification)
+    "semanticP0" : "/mnt/CLAWS1/tbeier/data/knott1000_results/pixel_classification/semantic_prob_r0.h5",
+    "rawSemanticP0" : "/mnt/CLAWS1/tbeier/data/knott1000_results/pixel_classification/raw_semantic_prob_r0.h5",
+    "boundaryP1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/pixel_classification/boundary_prob_r1.h5",
 
-    ////////////////////////////////
-    ///    PIPELINE OPTIONS
-    ////////////////////////////////
+
+    // superpixels 
+    "localMinMap" : "/mnt/CLAWS1/tbeier/data/knott1000_results/localMinMap.h5",
+    "oversegL0" : "/mnt/CLAWS1/tbeier/data/knott1000_results/overseg_l0.h5" ,
+
+    // save the RAG
+
+    "ragL0" :"/mnt/CLAWS1/tbeier/data/knott1000_results/rag_l0.h5",
+    "ragEdgeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/ragEdgeSize.h5",
+    "ragNodeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/ragNodeSize.h5",
+
+
+    // pixel features / weights 
+    "distTransformPMap1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/distTransformPMap1.h5",
+    "thinnedDistTransformPMap1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/thinnedDistTransformPMap1.h5",
+
+    // rag edge features / weights
+    "ragEdgePmap" : "/mnt/CLAWS1/tbeier/data/knott1000_results/ragEdgePmap.h5",
+    "ragEdgeDmap" : "/mnt/CLAWS1/tbeier/data/knott1000_results/ragEdgeDmap.h5",
+    "oversegL1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/overseg_l1.h5" 
 
 
 }

@@ -155,7 +155,7 @@ def prepareMinMap(raw, pmap, sPre=0.8, sInt=5.0, mapInterval=0.5,
     #grayData.append([mixedPmap,'mixedPmap'])
     #addHocViewer(grayData, labelsData, visu=visu)
 
-    # add a tiny portion of eigenvalues of hessian give flat wide boundaries the min at the right posstion
+    # add a tiny portion of eigenvalues of hessian give flat wide boundaries the min at the right position
     # but we only add this at places where the boundary is strong (in a hard fashion)
     aew = vigra.filters.hessianOfGaussianEigenvalues(numpy.require(raw, dtype=numpy.float32), scale=scaleEw).squeeze()
     sew = numpy.sort(aew,axis=3)

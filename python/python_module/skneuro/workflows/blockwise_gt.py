@@ -8,6 +8,7 @@ import re
 import vigra
 import progressbar
 import numpy
+import h5py
 
 from colorama import init
 from colorama import Fore, Back, Style
@@ -15,6 +16,38 @@ from termcolor import colored
 from collections import OrderedDict
 from skneuro import blockwise_filters as blockfilt
 init()
+
+
+def knottWorkflow(opt):
+
+    lazyCalculator = LazyCalc(opt['workRootFolder'])
+
+
+    with lazyCalculator.lazyCalc("combine_raw_and_semantic_p0", True):
+
+        print "read raw"
+        rawData = vigra.impex.readHDF5(opt['rawData'], opt['rawDatasetName']).squeeze()
+        print "read semantic"
+        semanticP0 = vigra.impex.readHDF5(opt['semanticP0'], 'data').squeeze()
+        semanticP0 *= 255.0
+        print semanticP0
+        
+        print "combine"
+        combination = numpy.zeros(rawData.shape[0:3]+(semanticP0.shape[3]+1,), dtype=numpy.float32)
+        print "save"
+        combination[:, :, :, 0] = rawData[:, :, :]
+        combination[:, :, :, 1:6] = semanticP0[:, :, :, :]
+
+
+        print "save chunked"
+        f1 = h5py.File(opt["rawSemanticP0"], 'w')
+        ds = f1.create_dataset('data',combination.shape, numpy.float32, chunks=(128, 128, 128, 6), data=combination)
+        f1.close()
+
+
+        #vigra.impex.writeHDF5(combination, opt["rawSemanticP0"], 'data')
+
+
 
 
 def neuroproofWorkflow(opts):

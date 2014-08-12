@@ -1,1 +1,1 @@
-from blockwise_gt import neuroproofWorkflow, loadJson
+from blockwise_gt import neuroproofWorkflow, loadJson, knottWorkflow

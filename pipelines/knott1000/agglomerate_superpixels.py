@@ -132,10 +132,10 @@ if False:
 
     print "extract sizes and length"
     edgeLengths = graphs.getEdgeLengths(rag)
-    vigra.impex.writeHDF5(edgeLengths, opt['ragEdgeSize'], "data")
+    vigra.impex.writeHDF5(edgeLengths, opt['ragL0EdgeSize'], "data")
 
     nodeSizes = graphs.getNodeSizes(rag)
-    vigra.impex.writeHDF5(nodeSizes, opt['ragNodeSize'], "data")
+    vigra.impex.writeHDF5(nodeSizes, opt['ragL0NodeSize'], "data")
 
 
 # reduce over-segmentation to 10k superpixels or something like that
@@ -152,14 +152,14 @@ if True:
 
 
     print "read extracted"
-    ewDmap =  vigra.impex.readHDF5(opt['ragEdgePmap'], "data")
-    ewPmap =  vigra.impex.readHDF5(opt['ragEdgeDmap'], "data")
+    ewDmap =  vigra.impex.readHDF5(opt['ragL0EdgePmap'], "data")
+    ewPmap =  vigra.impex.readHDF5(opt['ragL0EdgeDmap'], "data")
 
    
 
     print "read extracted sizes"
-    nodeSizes = vigra.impex.readHDF5(opt['ragNodeSize'], "data")
-    edgeLengths = vigra.impex.readHDF5(opt['ragEdgeSize'], "data")
+    nodeSizes = vigra.impex.readHDF5(opt['ragL0NodeSize'], "data")
+    edgeLengths = vigra.impex.readHDF5(opt['ragL0EdgeSize'], "data")
 
     print ""
 

@@ -20,7 +20,7 @@
     // where is the raw data
     "rawData" : "/mnt/CLAWS1/tbeier/data/knott1000/knott-block-full2/d.h5",
     "rawDatasetName" : "sbfsem",
-
+    "groundTruth" : "/mnt/CLAWS1/tbeier/data/knott1000/knott-block-full2/completeBlockDoneNew.h5",
 
     // where is the root work folder 
     "workRootFolder" : "/mnt/CLAWS1/tbeier/data/neuroproof_results/",
@@ -37,21 +37,95 @@
     "localMinMap" : "/mnt/CLAWS1/tbeier/data/knott1000_results/localMinMap.h5",
     "oversegL0" : "/mnt/CLAWS1/tbeier/data/knott1000_results/overseg_l0.h5" ,
 
-    // save the RAG
-
+    // save the RAG-L0
     "ragL0" :"/mnt/CLAWS1/tbeier/data/knott1000_results/rag_l0.h5",
-    "ragEdgeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/ragEdgeSize.h5",
-    "ragNodeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/ragNodeSize.h5",
+    "ragL0EdgeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/rag_l0_EdgeSize.h5",
+    "ragL0NodeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/rag_l0_NodeSize.h5",
+    "ragL0Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/rag_l0_gt.h5" ,
 
+    // project gt on  rag
+    
 
     // pixel features / weights 
     "distTransformPMap1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/distTransformPMap1.h5",
     "thinnedDistTransformPMap1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/thinnedDistTransformPMap1.h5",
 
     // rag edge features / weights
-    "ragEdgePmap" : "/mnt/CLAWS1/tbeier/data/knott1000_results/ragEdgePmap.h5",
-    "ragEdgeDmap" : "/mnt/CLAWS1/tbeier/data/knott1000_results/ragEdgeDmap.h5",
-    "oversegL1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/overseg_l1.h5" 
+    "ragL0EdgePmap" : "/mnt/CLAWS1/tbeier/data/knott1000_results/rag_l0_EdgePmap.h5",
+    "ragL0EdgeDmap" : "/mnt/CLAWS1/tbeier/data/knott1000_results/rag_l0_EdgeDmap.h5",
+    "oversegL1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/overseg_l1.h5",
 
 
+    // save the RAG-L1
+    "ragL1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/rag_l1.h5",
+    "ragL1EdgeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/rag_l1_EdgeSize.h5",
+    "ragL1NodeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/rag_l1_NodeSize.h5",
+    "ragL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/rag_l1_gt.h5",
+    "oversegL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/overseg_l1_gt.h5",
+
+
+
+    "train" : {
+        "slicing" : [ [0, 900] , [0, 901], [702, 902] ],
+
+        // raw data
+        "rawData" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/d.h5",
+        "rawDatasetName" : "sbfsem",
+
+        // pixel classification
+        "semanticP0" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/pixel_classification/semantic_prob_r0.h5",
+        "boundaryP1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/pixel_classification/boundary_prob_r1.h5",
+        "oversegL0" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/overseg_l0.h5",
+
+        "distTransformPMap1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/distTransformPMap1.h5",
+        "thinnedDistTransformPMap1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/thinnedDistTransformPMap1.h5",
+
+        // RAG-L0
+        "ragL0" :"/mnt/CLAWS1/tbeier/data/knott1000_results/train/rag_l0.h5",
+        "ragL0EdgeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/train/rag_l0_EdgeSize.h5",
+        "ragL0NodeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/train/rag_l0_NodeSize.h5",
+        "ragL0Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/rag_l0_gt.h5" ,
+        "oversegL1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/overseg_l1.h5",
+
+
+        // RAG-L1
+        "ragL1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/rag_l1.h5",
+        "ragL1EdgeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/train/rag_l1_EdgeSize.h5",
+        "ragL1NodeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/train/rag_l1_NodeSize.h5",
+        "ragL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/rag_l1_gt.h5",
+        "ragL1EdgeGt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/rag_l1_edge_gt.h5",
+        "oversegL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/overseg_l1_gt.h5"
+
+
+    },
+
+    "test" : {
+        "slicing" : [ [0, 900] , [0, 901], [0, 702] ] ,
+
+        // raw data
+        "rawData" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/d.h5",
+        "rawDatasetName" : "sbfsem",
+        // pixel classification
+        "semanticP0" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/pixel_classification/semantic_prob_r0.h5",
+        "boundaryP1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/pixel_classification/boundary_prob_r1.h5",
+        "oversegL0" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/overseg_l0.h5",
+
+        "distTransformPMap1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/distTransformPMap1.h5",
+        "thinnedDistTransformPMap1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/thinnedDistTransformPMap1.h5",
+
+
+        // RAG-L0
+        "ragL0" :"/mnt/CLAWS1/tbeier/data/knott1000_results/test/rag_l0.h5",
+        "ragL0EdgeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/test/rag_l0_EdgeSize.h5",
+        "ragL0NodeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/test/rag_l0_NodeSize.h5",
+        "ragL0Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/rag_l0_gt.h5" ,
+        "oversegL1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/overseg_l1.h5",
+
+        // RAG-L1
+        "ragL1" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/rag_l1.h5",
+        "ragL1EdgeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/test/rag_l1_EdgeSize.h5",
+        "ragL1NodeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/test/rag_l1_NodeSize.h5",
+        "ragL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/rag_l1_gt.h5",
+        "oversegL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/overseg_l1_gt.h5"
+    }
 }

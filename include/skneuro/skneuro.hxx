@@ -3,8 +3,23 @@
 
 #include <stdexcept>
 #include <sstream>
+#include <vector>
+
+#include <vigra/multi_array.hxx>
+#include <vigra/multi_gridgraph.hxx>
+#include <vigra/adjacency_list_graph.hxx>
 
 
+
+namespace skneuro{
+
+  typedef vigra::GridGraph<3, boost::undirected_tag> GridGraph3d;
+  typedef GridGraph3d::Edge GridGraph3dEdge;
+  typedef GridGraph3d::Node GridGraph3dNode;
+  typedef std::vector<GridGraph3dEdge> GridGraph3dEdgeVector;
+  typedef vigra::AdjacencyListGraph Rag;
+  typedef Rag::EdgeMap< GridGraph3dEdgeVector > GridGraph3dAffiliatedEdges;
+}
 
 // as runtime assertion but cefined even if NDEBUG
 

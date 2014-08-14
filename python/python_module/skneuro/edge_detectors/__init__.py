@@ -1,0 +1,1 @@
+vigra::GridGraph<3, boost::undirected_tag> gridGraph(labels.shape());

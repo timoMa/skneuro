@@ -3,6 +3,7 @@ import vigra.graphs as graphs
 import skneuro
 import skneuro.oversegmentation as oseg
 import skneuro.blockwise_filters as blockF
+import skneuro.learning as learning
 import numpy
 import gc
 import sys
@@ -14,7 +15,7 @@ opt = wf.loadJson(optJsonFile)
 
 
 datasetOpts = [opt['train'],opt['test']]
-datasetOpts = [opt['train']]
+datasetOpts = [opt['test']]
 
 
 datafiles = ["rawData", "oversegL0", "oversegL1", "oversegL1Gt", "semanticP0", "boundaryP1"]
@@ -31,6 +32,10 @@ for dopt in datasetOpts:
 
     
 
-    print "compute hessian features"
+    print "raw",raw.dtype, raw.shape
 
-    
+    print rag
+    with vigra.Timer("accFeatures"):
+        result = learning.accumulateFeatures(rag=rag, volume = raw.astype(numpy.uint8), 
+                                             histMin=0.0, histMax=256.0, nBins=20, histSigma=1.0)
+    #print result.shape, result

@@ -14,79 +14,274 @@
 
 #include <omp.h>
 namespace skneuro{
+    
 
+    struct AccumulatorOptions{
+
+        AccumulatorOptions(){
+            nBins=20;
+            sigmaHist=1.5;
+            accEdgeFeaturs=true;
+            accNodeFeaturs=true;
+        }
+
+
+        std::vector< std::string> select;
+
+        bool accEdgeFeaturs;
+        bool accNodeFeaturs;    
+        
+
+        size_t nBins;
+        double sigmaHist;
+        vigra::MultiArray<1, double> histMin;
+        vigra::MultiArray<1, double> histMax;
+
+
+        size_t featuresPerChannel()const{
+            size_t nFeat = 0;
+            for(size_t i=0; i<select.size(); ++i){
+                if(select[i] == std::string("Hist"))
+                    nFeat+=nBins;
+                else
+                    ++nFeat;
+            }   
+        }
+    };
+
+
+    template<class TAG>
+    struct TagNr;
+
+    #define TAG_NR_GEN(TAG, NR) \
+    template<> \
+    struct TagNr< TAG >{static const int value = NR;} \
+
+
+
+    TAG_NR_GEN(vigra::acc::Mean,                  0);
+    TAG_NR_GEN(vigra::acc::Variance,              1);
+    TAG_NR_GEN(vigra::acc::Minimum,               2);
+    TAG_NR_GEN(vigra::acc::Maximum,               3);
+    TAG_NR_GEN(vigra::acc::UserRangeHistogram<0>, 4);
+
+    struct MaxTag{
+        static const int value = 4;
+    };
+
+    template< class USED_TAG>
+    inline void setUsedTag(const std::vector<std::string > & select, USED_TAG & usedTag){
+
+        for(size_t ti=0; ti<MaxTag::value; ++ti){
+            usedTag[ti] = 0;
+        }
+
+        for(size_t si=0; si<select.size(); ++si){
+            const std::string & name = select[si];
+            if(name==std::string("Mean")){
+                usedTag[TagNr<vigra::acc::Mean>::value] = 1;
+            }
+            else if(name==std::string("Variance")){
+                usedTag[TagNr<vigra::acc::Variance>::value] = 1;
+            }
+            else if(name==std::string("Minimum")){
+                usedTag[TagNr<vigra::acc::Minimum>::value] = 1;
+            }
+            else if(name==std::string("Maximum")){
+                usedTag[TagNr<vigra::acc::Maximum>::value] = 1;
+            }
+            else if(name==std::string("UserRangeHistogram")){
+                usedTag[TagNr<vigra::acc::UserRangeHistogram<0> >::value] = 1;
+            }
+        }
+    }
+
+    template<class ACC_CHAIN, class USED_TAG>
+    inline void activateTags(ACC_CHAIN & accChain, USED_TAG & usedTag){
+        using namespace vigra::acc;
+        if(usedTag[TagNr<Mean>::value]){
+            accChain.activate<Mean>();
+        }
+        if(usedTag[TagNr<Variance>::value]){
+            accChain.activate<Variance>();
+        }
+        if(usedTag[TagNr<Minimum>::value]){
+            accChain.activate<Minimum>();
+        }
+        if(usedTag[TagNr<Maximum>::value]){
+            accChain.activate<Maximum>();
+        }
+        if(usedTag[TagNr<vigra::acc::UserRangeHistogram<0> >::value]){
+            accChain.activate<vigra::acc::UserRangeHistogram<0> >();
+        }
+    }
+
+
+    inline bool hasTag(std::set<std::string> sSet, std::string name){
+        return sSet.find(name) !=sSet.end();
+    }
+
+
+    template<class ACC_CHAIN,class USED_TAG, class FEATURES>
+    inline void extractFeatures(const ACC_CHAIN & accChain, const USED_TAG & usedTag, 
+                                const AccumulatorOptions & options,const size_t id, FEATURES & features
+    ){
+        size_t fIndex=0;
+        using namespace vigra::acc;
+        if(usedTag[TagNr<Mean>::value]){
+            features(id,fIndex++) = get<Mean>(accChain);
+        }
+        if(usedTag[TagNr<Variance>::value]){
+            features(id,fIndex++) = get<Variance>(accChain);
+        }
+        if(usedTag[TagNr<Minimum>::value]){
+            features(id,fIndex++) = get<Minimum>(accChain);
+        }
+        if(usedTag[TagNr<Maximum>::value]){
+            features(id,fIndex++) = get<vigra::acc::Maximum>(accChain);
+        }
+        if(usedTag[TagNr<UserRangeHistogram<0> >::value]){
+            vigra::MultiArrayView<1, double> hist = get<UserRangeHistogram<0> >(accChain);
+            vigra::MultiArray<1, double> sHist(hist.shape());
+            gaussianSmoothMultiArray(hist, sHist, options.sigmaHist);
+            for(size_t bi=0; bi<options.nBins; ++bi){
+                features(id,fIndex++) = sHist[bi];
+            }
+        }
+    }
 
 
     template<class PIXEL_TYPE, class FEATURE_TYPE>
     void accumulateFeatures(
         const GridGraph3d &                             gridGraph,
         const Rag &                                     rag,
+        const GridGraph3dLablsView &                    labels,
         const GridGraph3dAffiliatedEdges &              affiliatedEdges,
         const vigra::MultiArrayView<3, PIXEL_TYPE >  &  volume,
-        const float histMin,
-        const float histMax,
-        const size_t nBins,
-        const float histSigma,
-        vigra::MultiArrayView<2, FEATURE_TYPE > &       features
+        const AccumulatorOptions & options,
+        vigra::MultiArrayView<2, FEATURE_TYPE > &       edgeFeatures,
+        vigra::MultiArrayView<2, FEATURE_TYPE > &       nodeFeatures
     ){
         // check input sanity
         SKNEURO_CHECK_OP(rag.edgeNum(), >, 0, "no edges");
         SKNEURO_CHECK_OP(rag.edgeNum(), == , rag.maxEdgeId()+1, "malformed graph");
+        SKNEURO_CHECK_OP(options.select.size(),>, 0, "no selected accumulator");
+
 
         using namespace vigra::acc;
 
         typedef UserRangeHistogram<0> Hist;
-        typedef Select< Mean, Minimum, Maximum, Variance, Hist> Selection;
-        typedef AccumulatorChain<double,  Selection > AccChain;
-        //typedef DynamicAccumulatorChain<double,  Selection > AccChain;
+        typedef Select< Mean, Variance , Minimum, Maximum, Hist> Selection;
+        typedef DynamicAccumulatorChain<double,  Selection > AccChain;
+      
 
-        //  set the options
-        PIXEL_TYPE minVal,maxVal; 
+        // which accumulator is used
+        vigra::UInt8 usedTag[MaxTag::value];
+        setUsedTag(options.select, usedTag);
+
+
+        //  set the options 
         vigra::HistogramOptions histogram_opt;
-        histogram_opt = histogram_opt.setBinCount(nBins);
-        histogram_opt = histogram_opt.setMinMax(histMin, histMax);
+        histogram_opt = histogram_opt.setBinCount(options.nBins).setMinMax(options.histMin[0], options.histMax[0]);
 
-        std::vector<AccChain> accChainVec(rag.edgeNum());
 
-        const size_t nPasses = accChainVec.front().passesRequired();
-        for(size_t p=0; p < nPasses; ++p){
-            #pragma omp parallel for
-            for(size_t eid = 0; eid< rag.edgeNum(); ++eid){
+        std::set<std::string> sSet(options.select.begin(),options.select.end());
 
-                const GridGraph3dEdgeVector & edgeVector = affiliatedEdges[rag.edgeFromId(eid)];
-                AccChain & accChain = accChainVec[eid];
-                if(p == 0){
-                    accChain.setHistogramOptions(histogram_opt); 
-                }
-                for(size_t i=0; i<edgeVector.size(); ++i){
-                    //std::cout<<"   i "<<i<<"\n";
-                    const GridGraph3dNode u = gridGraph.u(edgeVector[i]);
-                    const GridGraph3dNode v = gridGraph.v(edgeVector[i]);
-                    const PIXEL_TYPE uVal = volume[u];
-                    const PIXEL_TYPE vVal = volume[v];
-                    accChain(uVal);
-                    accChain(vVal);
-                }
+        if(options.accEdgeFeaturs){
 
-                // DONE last pass 
-                // extract features
-                if(p+1 == nPasses){
-                    size_t fIndex=0;
-                    features(eid,fIndex++) = get<Mean>(accChain);
-                    features(eid,fIndex++) = get<Variance>(accChain);
+            // allocate a vector of accumulator chains
+            std::vector<AccChain> accChainVec(rag.edgeNum());   
+            
+            //  do the number of required passes
+            const size_t nPasses = accChainVec.front().passesRequired();
+            for(size_t p=0; p < nPasses; ++p){
 
-                    vigra::MultiArray<1, double> hist = get<Hist>(accChain);
-                    vigra::MultiArray<1, double> sHist(hist.shape());
+                // loop over all rag edges in parallel
+                #pragma omp parallel for
+                for(size_t eid = 0; eid< rag.edgeNum(); ++eid){
 
-                    gaussianSmoothMultiArray(hist, sHist, histSigma);
+                    // get reference to grid graph edges
+                    // and the accumulator chain for this edge
+                    const GridGraph3dEdgeVector & edgeVector = affiliatedEdges[rag.edgeFromId(eid)];
+                    AccChain & accChain = accChainVec[eid];
 
-                    for(size_t bi=0; bi<nBins; ++bi){
-                        features(eid,fIndex++) = sHist[bi];
+                    // activate tags (in first pass)
+                    if(p == 0)
+                        activateTags(accChain, usedTag);
+
+                    // get values and accumulate them
+                    for(size_t i=0; i<edgeVector.size(); ++i){
+                        accChain(volume[gridGraph.u(edgeVector[i])]);
+                        accChain(volume[gridGraph.v(edgeVector[i])]);
+                    }
+
+                    // extract features (in last pass)
+                    if(p+1 == nPasses){
+                        extractFeatures(accChain, usedTag, options, eid, edgeFeatures);
                     }
                 }
             }
         }
+
+
+        if(options.accNodeFeaturs){
+
+            // allocate a vector of accumulator chains
+            std::vector<AccChain> accChainVec(rag.maxNodeId()+1);
+
+            omp_lock_t * nodeLocks = new omp_lock_t[rag.maxNodeId()+1];
+
+            // activate locks and tags
+            #pragma omp parallel for
+            for(size_t nid=0; nid<=rag.maxNodeId(); ++nid){
+                if(rag.nodeFromId(nid)!=lemon::INVALID){
+                    omp_init_lock(&nodeLocks[nid]);
+                    activateTags(accChainVec[nid], usedTag);
+                }
+            }
+
+
+            vigra::TinyVector<UInt32, 3> shape = labels.shape();
+
+            //  do the number of required passes
+            const size_t nPasses = accChainVec.front().passesRequired();
+            for(size_t p=0; p < nPasses; ++p){
+
+                #pragma omp parallel for
+                for(size_t z=0; z<shape[2]; ++z){
+                    GridGraph3dNode node;
+                    node[2]=z;
+                    for(node[1]=0; node[1]<shape[1]; ++node[1])
+                    for(node[0]=0; node[0]<shape[0]; ++node[0]){
+                        const UInt32 label = labels[node];
+
+                        // lock the label
+                        omp_set_lock(&nodeLocks[label]);
+
+                        // do the actual accumulation
+                        accChainVec[label](volume[node]);
+
+                        // unlock the label
+                        omp_unset_lock(&nodeLocks[label]);
+                    }    
+                }
+            }
+
+            // extract features
+            #pragma omp parallel for
+            for(size_t nid=0; nid<=rag.maxNodeId(); ++nid){
+                if(rag.nodeFromId(nid)!=lemon::INVALID){
+                    extractFeatures(accChainVec[nid], usedTag, options, nid, nodeFeatures);
+                }
+            }
+
+            delete[] nodeLocks;
+        }
     }
 }
+    
+
+
+
 
 #endif /*SKNEURO_FEATURE_EXTRACTION_HXX*/

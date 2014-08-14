@@ -14,6 +14,7 @@
 namespace skneuro{
 
   typedef vigra::GridGraph<3, boost::undirected_tag> GridGraph3d;
+  typedef vigra::MultiArrayView<3, vigra::UInt32 > GridGraph3dLablsView;
   typedef GridGraph3d::Edge GridGraph3dEdge;
   typedef GridGraph3d::Node GridGraph3dNode;
   typedef std::vector<GridGraph3dEdge> GridGraph3dEdgeVector;

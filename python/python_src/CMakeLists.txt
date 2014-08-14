@@ -22,7 +22,7 @@ add_subdirectory(clustering)
 add_subdirectory(utilities) 
 add_subdirectory(denoising) 
 add_subdirectory(learning) 
-#add_subdirectory(oversegmentation) 
+add_subdirectory(oversegmentation) 
 
 
 #--------------------------------------------------------------

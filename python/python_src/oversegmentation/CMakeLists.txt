@@ -7,7 +7,7 @@
 # Add MODULES  
 #--------------------------------------------------------------
 add_library( _oversegmentation SHARED  py_oversegmentation.cxx
-    py_learning.cxx
+    py_oversegmentation.cxx
 )
 
 

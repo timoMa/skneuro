@@ -19,39 +19,50 @@
 // standart c++ headers (whatever you need (string and vector are just examples))
 #include <string>
 #include <vector>
+#include <list>
 
 // my headers  ( in my_module/include )
 #include <skneuro/skneuro.hxx>
 #include <skneuro/learning/feature_extraction.hxx>
 
 
+#include <boost/python/object.hpp>
+#include <boost/python/stl_iterator.hpp>
+
 namespace bp = boost::python;
 
 namespace skneuro{
 
     template<class PIXEL_TYPE>
-    vigra::NumpyAnyArray 
+    bp::tuple
     accumulateFeatures(
         const GridGraph3d & gridGraph,
         const Rag & rag,
+        const vigra::NumpyArray<3, vigra::UInt32> & labels,
         const GridGraph3dAffiliatedEdges & affiliatedEdges,
         const vigra::NumpyArray< 3 , PIXEL_TYPE>  & volume,
-        const float histMin,
-        const float histMax,
-        const size_t nBins,
-        const float histSigma,
-        vigra::NumpyArray< 2 , float> features
+        const AccumulatorOptions & options,
+        vigra::NumpyArray< 2 , float> edgeFeatures,
+        vigra::NumpyArray< 2 , float> nodeFeatures
     ){
         SKNEURO_CHECK_OP(rag.edgeNum(), >, 0, "no edges");
         SKNEURO_CHECK_OP(rag.edgeNum(),==,rag.maxEdgeId()+1, "malformed graph");
         typedef typename vigra::NumpyArray< 2 , float>::difference_type Shape2;
-        const size_t numberOfFeatures = nBins+2;
-        Shape2 featuresShape(rag.edgeNum(),numberOfFeatures);
-        features.reshapeIfEmpty(featuresShape);
-        accumulateFeatures<PIXEL_TYPE, float>(gridGraph, rag, affiliatedEdges,
-                                              volume, histMin, histMax, nBins,
-                                              histSigma, features);
-        return features;
+        const size_t numberOfFeatures = options.featuresPerChannel();
+        if(options.accEdgeFeaturs){
+            Shape2 featuresShape(rag.edgeNum(),numberOfFeatures);
+            edgeFeatures.reshapeIfEmpty(featuresShape);
+        }
+        if(options.accNodeFeaturs){
+            Shape2 featuresShape(rag.maxNodeId()+1,numberOfFeatures);
+            nodeFeatures.reshapeIfEmpty(featuresShape);
+        }
+        accumulateFeatures<PIXEL_TYPE, float>(gridGraph, rag, labels, 
+                                              affiliatedEdges, volume, 
+                                              options, edgeFeatures,
+                                              nodeFeatures);
+
+        return bp::make_tuple(edgeFeatures, nodeFeatures);
     }
 
 } // end namespace skneuro
@@ -67,16 +78,68 @@ void export_accumulate_features_T(){
             bp::arg("rag"),
             bp::arg("affiliatedEdges"),
             bp::arg("volume"),
-            bp::arg("histMin"),
-            bp::arg("histMax"),
-            bp::arg("nBins"),
-            bp::arg("histSigma"),
-            bp::arg("out") = bp::object()
+            bp::arg("options"),
+            bp::arg("edgeFeaturs") = bp::object(),
+            bp::arg("nodeFeaturs") = bp::object()
         )
     );
 }
 
-void export_accumulate_features(){
+vigra::NumpyAnyArray getHistMin(const skneuro::AccumulatorOptions & options){
+    vigra::NumpyArray<1, double > histMin(options.histMin);
+    return histMin;
+}
+
+void setHistMin(skneuro::AccumulatorOptions & options,
+                const vigra::NumpyArray<1, double> histMin
+){
+    options.histMin = histMin;
+}
+
+vigra::NumpyAnyArray getHistMax(const skneuro::AccumulatorOptions & options){
+    vigra::NumpyArray<1, double > histMax(options.histMax);
+    return histMax;
+}
+
+void setHistMax(skneuro::AccumulatorOptions & options,
+                const vigra::NumpyArray<1, double> histMax
+){
+    options.histMax = histMax;
+}
+
+void setSelect(skneuro::AccumulatorOptions & options,
+               const bp::object & obj){
+
+    bp::stl_input_iterator<std::string> begin(obj), end;
+    options.select.assign(begin, end);
+}
+
+bp::list getSelect(const skneuro::AccumulatorOptions & options){
+    bp::list ret;
+    for(size_t i=0; i<options.select.size(); ++i)
+        ret.append(options.select[i]);
+    return ret;
+}
+
+
+
+void export_accumulate_features(){  
+
+    typedef skneuro::AccumulatorOptions AccOpts;
+
+    bp::class_<AccOpts>("AccumulatorOptions",bp::init<>())
+    .add_property("select", &getSelect, &setSelect)
+    .def_readwrite("accEdgeFeaturs", &AccOpts::accEdgeFeaturs)
+    .def_readwrite("accNodeFeaturs", &AccOpts::accNodeFeaturs)
+    .def_readwrite("nBins", &AccOpts::nBins)
+    .def_readwrite("sigmaHist", &AccOpts::sigmaHist)
+    .add_property("histMin", 
+                  vigra::registerConverters(&getHistMin), 
+                  vigra::registerConverters(&setHistMin))
+    .add_property("histMax", 
+                  vigra::registerConverters(&getHistMax), 
+                  vigra::registerConverters(&setHistMax))
+    ;
 
     export_accumulate_features_T<float>();
     export_accumulate_features_T<vigra::UInt8>();

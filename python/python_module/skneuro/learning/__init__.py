@@ -1,4 +1,4 @@
-from _learning import _accumulateFeatures
+from _learning import _accumulateFeatures, AccumulatorOptions
 
 
 

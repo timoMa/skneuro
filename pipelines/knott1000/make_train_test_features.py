@@ -1,7 +1,6 @@
 import vigra
 import vigra.graphs as graphs
 import skneuro
-import skneuro.oversegmentation as oseg
 import skneuro.blockwise_filters as blockF
 import skneuro.learning as learning
 import numpy
@@ -10,7 +9,7 @@ import sys
 import h5py
 from skneuro import workflows as wf
 
-optJsonFile = "opt.json"
+optJsonFile = "opt2.json"
 opt = wf.loadJson(optJsonFile)
 
 

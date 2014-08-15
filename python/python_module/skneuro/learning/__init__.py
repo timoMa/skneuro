@@ -1,19 +1,36 @@
+import numpy
 from _learning import _accumulateFeatures, AccumulatorOptions
+from ..parallel import arrayMinMax
+
+def accumulatorOptions(select = None, edgeFeatures=True, nodeFeatures=True,
+                       sigmaHist = 1.5, nBins = 20, histMin=None, histMax=None):
+    if select is None:
+        select = ['Mean', 'Variance', 'UserRangeHistogram']
+    options = AccumulatorOptions()
+    options.select = select
+    options.edgeFeatures = edgeFeatures
+    options.nodeFeatures = nodeFeatures
+
+    return options
 
 
 
+def accumulateFeatures(rag, volume, options=None):
 
-def accumulateFeatures(rag, volume, histMin=None, histMax=None, nBins=100,
-                       histSigma=5.0):
+    if options is None :
+        options = accumulatorOptions()
+
+    if len(options.histMin) == 1 or len(options.histMax) == 2:
+        minVal, maxVal = arrayMinMax(volume)
+        print minVal, maxVal
+        options.histMin = numpy.array([minVal])
+        options.histMax = numpy.array([maxVal])
+
     gridGraph = rag.baseGraph
     affiliatedEdges = rag.affiliatedEdges
+    labels = rag.labels
 
-    if histMin is None:
-        histMin = float(volume.min())
-    if histMax is None:
-        histMax = float(volume.max())
-
-    res = _accumulateFeatures(gridGraph=gridGraph, rag=rag, affiliatedEdges=affiliatedEdges,
-                              volume=volume, histMin=float(histMin), histMax=float(histMax),
-                              nBins=int(nBins), histSigma=float(histSigma))
+    res = _accumulateFeatures(gridGraph=gridGraph, rag=rag, labels=labels,
+                              affiliatedEdges=affiliatedEdges, volume=volume,
+                              options=options)
     return res

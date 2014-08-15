@@ -8,8 +8,9 @@ import gc
 import sys
 import h5py
 from skneuro import workflows as wf
+from skneuro import learning as learn
 
-optJsonFile = "opt2.json"
+optJsonFile = "opt.json"
 opt = wf.loadJson(optJsonFile)
 
 
@@ -33,8 +34,15 @@ for dopt in datasetOpts:
 
     print "raw",raw.dtype, raw.shape
 
-    print rag
+
+
+
+
+
     with vigra.Timer("accFeatures"):
-        result = learning.accumulateFeatures(rag=rag, volume = raw.astype(numpy.uint8), 
-                                             histMin=0.0, histMax=256.0, nBins=20, histSigma=1.0)
+
+
+
+
+        features = learning.accumulateFeatures(rag=rag, volume=raw.astype(numpy.float32))
     #print result.shape, result

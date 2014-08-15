@@ -6,7 +6,7 @@ namespace skneuro{
 
         template<unsigned int DIM,class T>
         void arrayMinMax(
-            vigra::MultiArrayView<DIM, T> array,
+            const vigra::MultiArrayView<DIM, T> & array,
             T & minVal,
             T & maxVal
         ){
@@ -30,10 +30,15 @@ namespace skneuro{
                         max_val = std::max(max_val, array[i]);
                     }
                 }
-                SKNEURO_CHECK_OP(false,==,true,"say thorsten to impl this");
-                //else if(DIM==2){
-                //    
-                //}
+                else{
+                    typedef typename vigra::MultiArrayView<DIM, T>::const_iterator Iter;
+                    #pragma omp parallel for reduction(min : min_val) reduction(max: max_val)
+                    for(Iter iter = array.begin(); iter< array.end() ; ++iter ){
+                        const T value = *iter;
+                        min_val = std::min(min_val, value);
+                        max_val = std::max(max_val, value);
+                    }
+                }
             }
             minVal = min_val;
             maxVal = max_val;

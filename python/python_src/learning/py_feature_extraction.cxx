@@ -49,11 +49,12 @@ namespace skneuro{
         SKNEURO_CHECK_OP(rag.edgeNum(),==,rag.maxEdgeId()+1, "malformed graph");
         typedef typename vigra::NumpyArray< 2 , float>::difference_type Shape2;
         const size_t numberOfFeatures = options.featuresPerChannel();
-        if(options.accEdgeFeaturs){
+        std::cout<<"numberOfFeatures per channel "<<numberOfFeatures<<"\n";
+        if(options.edgeFeatures){
             Shape2 featuresShape(rag.edgeNum(),numberOfFeatures);
             edgeFeatures.reshapeIfEmpty(featuresShape);
         }
-        if(options.accNodeFeaturs){
+        if(options.nodeFeatures){
             Shape2 featuresShape(rag.maxNodeId()+1,numberOfFeatures);
             nodeFeatures.reshapeIfEmpty(featuresShape);
         }
@@ -76,6 +77,7 @@ void export_accumulate_features_T(){
         (
             bp::arg("gridGraph"),
             bp::arg("rag"),
+            bp::arg("labels"),
             bp::arg("affiliatedEdges"),
             bp::arg("volume"),
             bp::arg("options"),
@@ -129,8 +131,8 @@ void export_accumulate_features(){
 
     bp::class_<AccOpts>("AccumulatorOptions",bp::init<>())
     .add_property("select", &getSelect, &setSelect)
-    .def_readwrite("accEdgeFeaturs", &AccOpts::accEdgeFeaturs)
-    .def_readwrite("accNodeFeaturs", &AccOpts::accNodeFeaturs)
+    .def_readwrite("edgeFeaturs", &AccOpts::edgeFeatures)
+    .def_readwrite("nodeFeaturs", &AccOpts::nodeFeatures)
     .def_readwrite("nBins", &AccOpts::nBins)
     .def_readwrite("sigmaHist", &AccOpts::sigmaHist)
     .add_property("histMin", 

@@ -1,6 +1,8 @@
 #ifndef SKNEURO_FEATURE_EXTRACTION_HXX
 #define SKNEURO_FEATURE_EXTRACTION_HXX
 
+#include <iostream>
+
 #include <vigra/multi_array.hxx>
 #include <vigra/multi_gridgraph.hxx>
 #include <vigra/graphs.hxx>
@@ -21,15 +23,24 @@ namespace skneuro{
         AccumulatorOptions(){
             nBins=20;
             sigmaHist=1.5;
-            accEdgeFeaturs=true;
-            accNodeFeaturs=true;
+            edgeFeatures=true;
+            nodeFeatures=true;
+            select.push_back("Mean");
+            select.push_back("Variance");
+            select.push_back("UserRangeHistogram");
+            histMin.reshape(vigra::MultiArray<1, double>::difference_type(1));
+            histMax.reshape(vigra::MultiArray<1, double>::difference_type(2));
+
+            histMax[0]=-1.0;
+            histMin[0]=1.0;
+
         }
 
 
         std::vector< std::string> select;
 
-        bool accEdgeFeaturs;
-        bool accNodeFeaturs;    
+        bool edgeFeatures;
+        bool nodeFeatures;    
         
 
         size_t nBins;
@@ -41,11 +52,12 @@ namespace skneuro{
         size_t featuresPerChannel()const{
             size_t nFeat = 0;
             for(size_t i=0; i<select.size(); ++i){
-                if(select[i] == std::string("Hist"))
+                if(select[i] == std::string("UserRangeHistogram"))
                     nFeat+=nBins;
                 else
                     ++nFeat;
-            }   
+            }
+            return nFeat;   
         }
     };
 
@@ -117,11 +129,6 @@ namespace skneuro{
     }
 
 
-    inline bool hasTag(std::set<std::string> sSet, std::string name){
-        return sSet.find(name) !=sSet.end();
-    }
-
-
     template<class ACC_CHAIN,class USED_TAG, class FEATURES>
     inline void extractFeatures(const ACC_CHAIN & accChain, const USED_TAG & usedTag, 
                                 const AccumulatorOptions & options,const size_t id, FEATURES & features
@@ -141,10 +148,13 @@ namespace skneuro{
             features(id,fIndex++) = get<vigra::acc::Maximum>(accChain);
         }
         if(usedTag[TagNr<UserRangeHistogram<0> >::value]){
-            vigra::MultiArrayView<1, double> hist = get<UserRangeHistogram<0> >(accChain);
+            vigra::MultiArray<1, double> hist = get<UserRangeHistogram<0> >(accChain);
             vigra::MultiArray<1, double> sHist(hist.shape());
             gaussianSmoothMultiArray(hist, sHist, options.sigmaHist);
             for(size_t bi=0; bi<options.nBins; ++bi){
+
+                SKNEURO_CHECK_OP(bi,<,sHist.shape(0),"");
+                SKNEURO_CHECK_OP(fIndex,<,features.shape(1),"");
                 features(id,fIndex++) = sHist[bi];
             }
         }
@@ -179,16 +189,12 @@ namespace skneuro{
         vigra::UInt8 usedTag[MaxTag::value];
         setUsedTag(options.select, usedTag);
 
-
         //  set the options 
         vigra::HistogramOptions histogram_opt;
         histogram_opt = histogram_opt.setBinCount(options.nBins).setMinMax(options.histMin[0], options.histMax[0]);
 
 
-        std::set<std::string> sSet(options.select.begin(),options.select.end());
-
-        if(options.accEdgeFeaturs){
-
+        if(options.edgeFeatures){
             // allocate a vector of accumulator chains
             std::vector<AccChain> accChainVec(rag.edgeNum());   
             
@@ -206,8 +212,10 @@ namespace skneuro{
                     AccChain & accChain = accChainVec[eid];
 
                     // activate tags (in first pass)
-                    if(p == 0)
+                    if(p == 0){
                         activateTags(accChain, usedTag);
+                        accChain.setHistogramOptions(histogram_opt);
+                    }
 
                     // get values and accumulate them
                     for(size_t i=0; i<edgeVector.size(); ++i){
@@ -224,29 +232,35 @@ namespace skneuro{
         }
 
 
-        if(options.accNodeFeaturs){
-
+        if(options.nodeFeatures){
             // allocate a vector of accumulator chains
             std::vector<AccChain> accChainVec(rag.maxNodeId()+1);
 
+
             omp_lock_t * nodeLocks = new omp_lock_t[rag.maxNodeId()+1];
 
-            // activate locks and tags
+
             #pragma omp parallel for
             for(size_t nid=0; nid<=rag.maxNodeId(); ++nid){
                 if(rag.nodeFromId(nid)!=lemon::INVALID){
                     omp_init_lock(&nodeLocks[nid]);
                     activateTags(accChainVec[nid], usedTag);
+                    accChainVec[nid].setHistogramOptions(histogram_opt);
                 }
             }
 
-
             vigra::TinyVector<UInt32, 3> shape = labels.shape();
 
-            //  do the number of required passes
-            const size_t nPasses = accChainVec.front().passesRequired();
-            for(size_t p=0; p < nPasses; ++p){
 
+            size_t nPasses;
+            for(size_t nid=0; nid<=rag.maxNodeId(); ++nid){
+                if(rag.nodeFromId(nid)!=lemon::INVALID){
+                    nPasses = accChainVec[nid].passesRequired();
+                    break;
+                }
+            }
+            
+            for(size_t p=0; p < nPasses; ++p){
                 #pragma omp parallel for
                 for(size_t z=0; z<shape[2]; ++z){
                     GridGraph3dNode node;
@@ -255,6 +269,8 @@ namespace skneuro{
                     for(node[0]=0; node[0]<shape[0]; ++node[0]){
                         const UInt32 label = labels[node];
 
+                        SKNEURO_CHECK_OP( bool(rag.nodeFromId(label)==lemon::INVALID),==,false, "");
+                        SKNEURO_CHECK_OP(label,<=, rag.maxNodeId(), "");
                         // lock the label
                         omp_set_lock(&nodeLocks[label]);
 
@@ -266,6 +282,7 @@ namespace skneuro{
                     }    
                 }
             }
+            delete[] nodeLocks;
 
             // extract features
             #pragma omp parallel for
@@ -274,10 +291,9 @@ namespace skneuro{
                     extractFeatures(accChainVec[nid], usedTag, options, nid, nodeFeatures);
                 }
             }
-
-            delete[] nodeLocks;
         }
     }
+   
 }
     
 

@@ -23,7 +23,7 @@ def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, o
 
     
         # get the block with border / margin
-        block = blocking.blockWithBorder(blockIndex, width=10)
+        block = blocking.blockWithBorder(blockIndex, width=margin)
 
         # make the arguments
         kwargs = dict()

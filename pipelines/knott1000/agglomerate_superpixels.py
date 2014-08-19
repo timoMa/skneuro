@@ -1,7 +1,7 @@
 import vigra
 import vigra.graphs as graphs
 import skneuro
-import skneuro.oversegmentation as oseg
+#import skneuro.oversegmentation as oseg
 import skneuro.blockwise_filters as blockF
 import numpy
 import gc
@@ -171,15 +171,15 @@ if True:
         #(100, 1.0, 0.25),
         #(100, 1.0, 0.50),
         #(100, 1.0, 0.70),
-        (1000, 1.0, 0.25),
+        #(1000, 1.0, 0.25),
         #(1000, 1.0, 0.50),
         #(1000, 1.0, 0.70),
         #(5000, 1.0, 0.25),
-        #(5000, 1.0, 0.50),
+        (5000, 1.0, 0.50),
         #(5000, 1.0, 0.70),
-
-        #(20000, 1.0, 0.25),
-        #(20000, 1.0, 0.50),
+        (10000, 1.0, 0.50),
+        (20000, 1.0, 0.25),
+        (20000, 1.0, 0.50)
         #(30000, 1.0, 0.70)
 
     ]

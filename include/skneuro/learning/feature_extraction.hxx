@@ -151,10 +151,13 @@ namespace skneuro{
             vigra::MultiArray<1, double> hist = get<UserRangeHistogram<0> >(accChain);
             vigra::MultiArray<1, double> sHist(hist.shape());
             gaussianSmoothMultiArray(hist, sHist, options.sigmaHist);
+            double sum = sHist.sum<double>();
+            sHist/=sum;
             for(size_t bi=0; bi<options.nBins; ++bi){
 
                 SKNEURO_CHECK_OP(bi,<,sHist.shape(0),"");
                 SKNEURO_CHECK_OP(fIndex,<,features.shape(1),"");
+                sum += sHist[bi];
                 features(id,fIndex++) = sHist[bi];
             }
         }
@@ -195,11 +198,16 @@ namespace skneuro{
 
 
         if(options.edgeFeatures){
+            //std::cout<<"DO EDGE FEATRURES\n";
             // allocate a vector of accumulator chains
             std::vector<AccChain> accChainVec(rag.edgeNum());   
             
             //  do the number of required passes
-            const size_t nPasses = accChainVec.front().passesRequired();
+            const size_t nPasses = 1; // TODO FIX ME!!!!!!accChainVec.front().passesRequired();
+
+
+            //std::cout<<"passes required?!?!"<<nPasses<<"\n";
+
             for(size_t p=0; p < nPasses; ++p){
 
                 // loop over all rag edges in parallel
@@ -225,6 +233,7 @@ namespace skneuro{
 
                     // extract features (in last pass)
                     if(p+1 == nPasses){
+                        //std::cout<<"extract\n";
                         extractFeatures(accChain, usedTag, options, eid, edgeFeatures);
                     }
                 }
@@ -233,6 +242,7 @@ namespace skneuro{
 
 
         if(options.nodeFeatures){
+            //std::cout<<"do node features\n";
             // allocate a vector of accumulator chains
             std::vector<AccChain> accChainVec(rag.maxNodeId()+1);
 

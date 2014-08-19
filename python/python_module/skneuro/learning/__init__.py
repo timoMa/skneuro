@@ -34,3 +34,4 @@ def accumulateFeatures(rag, volume, options=None):
                               affiliatedEdges=affiliatedEdges, volume=volume,
                               options=options)
     return res
+

@@ -66,6 +66,7 @@
 
 
     "train" : {
+
         "slicing" : [ [0, 900] , [0, 901], [702, 902] ],
 
         // raw data
@@ -94,7 +95,9 @@
         "ragL1NodeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/train/rag_l1_NodeSize.h5",
         "ragL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/rag_l1_gt.h5",
         "ragL1EdgeGt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/rag_l1_edge_gt.h5",
-        "oversegL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/overseg_l1_gt.h5"
+        "oversegL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/overseg_l1_gt.h5",
+        "ragFeatureDir" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/ragfeatures/",
+        "ragFeatures" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/features.h5"
 
 
     },
@@ -126,6 +129,8 @@
         "ragL1EdgeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/test/rag_l1_EdgeSize.h5",
         "ragL1NodeSize" :"/mnt/CLAWS1/tbeier/data/knott1000_results/test/rag_l1_NodeSize.h5",
         "ragL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/rag_l1_gt.h5",
-        "oversegL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/overseg_l1_gt.h5"
+        "oversegL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/overseg_l1_gt.h5",
+        "ragFeatureDir" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/ragfeatures/",
+        "ragFeatures" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/features.h5"
     }
 }

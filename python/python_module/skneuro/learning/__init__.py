@@ -1,6 +1,8 @@
 import numpy
 from _learning import _accumulateFeatures, AccumulatorOptions
 from ..parallel import arrayMinMax
+import vigra
+from vigra import graphs 
 
 def accumulatorOptions(select = None, edgeFeatures=True, nodeFeatures=True,
                        sigmaHist = 1.5, nBins = 20, histMin=None, histMax=None):
@@ -53,10 +55,10 @@ class ActiveGraphLearning(object):
     def __init__(self):
         pass
 
-    def initalTraining(self, graphData, eY, rfPath, rfPathNew):
+    def initialTraining(self, graphData, eY, rfPath):
         # do the inital training
-        mg = graphs.mergeGraph(rag)
-        df = graphs.NeuroDynamicFeatures(self.rag, mg)
+        mg = graphs.mergeGraph(graphData.rag)
+        df = graphs.NeuroDynamicFeatures(graphData.rag, mg)
 
         # assign features
         df.assignEdgeCues(graphData.eX)
@@ -75,10 +77,12 @@ class ActiveGraphLearning(object):
         features, labels  = df.computeInitalTrainingSet()
 
         print "train random forest"
-        rf = vigra.learning.RandomForest(treeCount=100)
+        rf = vigra.learning.RandomForest(treeCount=1000)
+
+        #rf.learnRF(features, labels)
 
         print "save random forest"
-        rf.writeHDF5(rfPath, 'rf')
+        #rf.writeHDF5(rfPath, 'rf')
 
         print "save features and labels "
         vigra.impex.writeHDF5(features, rfPath, 'X')
@@ -87,7 +91,7 @@ class ActiveGraphLearning(object):
 
 
 
-    def getNewRf(graphData, eY, rfPath):
+    def getNewRf(self, graphData, eY, rfPath, rfPathNew):
 
         print "load random forest"
         rf = vigra.learning.RandomForest(rfPath,'rf')
@@ -95,8 +99,8 @@ class ActiveGraphLearning(object):
         X = vigra.impex.readHDF5(rfPath, 'X')
         Y = vigra.impex.readHDF5(rfPath, 'Y')
 
-        mg = graphs.mergeGraph(rag)
-        df = graphs.NeuroDynamicFeatures(self.rag, mg)
+        mg = graphs.mergeGraph(graphData.rag)
+        df = graphs.NeuroDynamicFeatures(graphData.rag, mg)
 
         # assign features
         df.assignEdgeCues(graphData.eX)
@@ -110,32 +114,58 @@ class ActiveGraphLearning(object):
         # register callbacks
         df.registerCallbacks()
 
-        raise RuntimeError("FROM HERE NOT IMPLEMENTED")
 
 
-        nX, nY = df.getNewFeatures(rf=rf)
+        ret = df.getNewFeatureByClustering(rf=rf)
 
 
 
-        if nX is None or nY is None:
+        if len(ret) == 1 :
             return "done"
 
+        nN, nX, nY = ret
+        print "collected",nN,"new training instances"
+        nX = nX[0:nN,:]
+        nY = nY[0:nN,:]
 
-        X = numpy.concatenate([X,aX], axis=0)
-        Y = numpy.concatenate([Y,aY], axis=0)
+        X = numpy.concatenate([X,nX], axis=0)
+        Y = numpy.concatenate([Y,nY], axis=0)
 
         print "train random forest"
-        rf = vigra.learning.RandomForest(treeCount=100)
+        rf = vigra.learning.RandomForest(treeCount=1000)
+
+        oob = rf.learnRF(X, Y)
+
+        print oob
 
         print "save random forest"
-        rf.writeHDF5(rfPath, 'rf')
+        rf.writeHDF5(rfPathNew, 'rf')
 
         print "save features and labels "
-        vigra.impex.writeHDF5(features, rfPath, 'X')
-        vigra.impex.writeHDF5(labels, rfPath, 'Y')
+        vigra.impex.writeHDF5(X, rfPathNew, 'X')
+        vigra.impex.writeHDF5(Y, rfPathNew, 'Y')
 
+        #sys.exit(0)
         return "not_done"
 
 
-    def predict(self):
-        pass
+    def predict(self, graphData, rfPath):
+        print "load random forest"
+        rf = vigra.learning.RandomForest(rfPath,'rf')
+        mg = graphs.mergeGraph(graphData.rag)
+        df = graphs.NeuroDynamicFeatures(graphData.rag, mg)
+
+        # assign features
+        df.assignEdgeCues(graphData.eX)
+        df.assignNodeCues(graphData.nX)
+        df.assignEdgeSizes(graphData.eSize)
+        df.assignNodeSizes(graphData.nSize)
+
+        #NOT assign labels
+        #df.assignLabels(eY)
+
+        # register callbacks
+        df.registerCallbacks()
+
+        labels = df.predict(rf=rf, stopProb=0.5)
+        return labels

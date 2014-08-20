@@ -39,12 +39,13 @@ rag = graphs.loadGridRagHDF5(dopt['ragL1'],'data')
 graphData = learning.GraphData(rag=rag, eX=eX, nX=nX, 
                                eSize=eSize, nSize=nSize)
 
-rfFolder = dopt['activeRfDir']
+rfFolder = dopt['activeRfDir'].encode('ASCII')
 
 if True :
 
     learner = learning.ActiveGraphLearning()
     rf0Path = rfFolder + 'rf0.h5'
+    rf0Path = rf0Path.encode('ASCII')
     learner.initialTraining(graphData = graphData, eY=eY, rfPath=rf0Path)
 
 
@@ -56,11 +57,17 @@ if True :
     while(True):
 
         print "load rf nr:",rfNumber
-        rfPath = "rf%d"%rfNumber
+        rfPath = rfFolder+"rf%d.h5"%rfNumber
+
+        print rfPath 
+
         rfNumber+=1
-        rfPathNew = "rf%d"%rfNumber
+        rfPathNew = rfFolder+"rf%d.h5"%rfNumber
         ret = learner.getNewRf(graphData = graphData, eY=eY, rfPath=rfPath, rfPathNew=rfPathNew)
         
         if ret == 'done':
-            return
+            print "done"
+            break
 
+        if rfNumber >=50 :
+            break

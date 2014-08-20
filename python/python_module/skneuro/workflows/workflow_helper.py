@@ -44,7 +44,7 @@ def loadJson(filename):
         match = comment_re.search(content)
         while match:
             # single line comment
-            content = content[:match.start()] + content[match.end():]
+            content = content[:match.start()].encode('ascii') + content[match.end():].encode('ascii')
             match = comment_re.search(content)
 
 

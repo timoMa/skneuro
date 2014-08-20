@@ -11,11 +11,13 @@ import h5py
 from skneuro import workflows as wf
 from skneuro import learning as learn
 
+import gc
+
 optJsonFile = "opt.json"
 opt = wf.loadJson(optJsonFile)
 
 
-datasetOpts = [opt['train'],opt['test']]
+datasetOpts = [opt['test'],opt['train']]
 #datasetOpts = [opt['train']]
 
 
@@ -65,12 +67,12 @@ class StructTensorEw(object):
 
     def __call__(self):
 
-        result = blockF.blockwiseStructureTensorSortedEigenvalues(self.raw,innerScale=self.scale, outerScale=innerScale*2.0)
+        result = blockF.blockwiseStructureTensorSortedEigenvalues(self.raw,innerScale=self.scale, outerScale=self.scale*2.0)
         return result
 
     def name(self):
         scaleStr = float("{0:.2f}".format(self.scale))
-        return "hessian_largest_ew_"+str(scaleStr)
+        return "struct_tensor_largest_ew_"+str(scaleStr)
 
     def free(self):
         pass
@@ -109,18 +111,18 @@ class GaussSmooth(object):
 
     def name(self):
         sigmaStr = float("{0:.2f}".format(self.sigma))
-        return "gradmag_"+str(sigmaStr)
+        return "gauss_smooth"+str(sigmaStr)
 
     def free(self):
         pass
 
 
 class Dilation(object):
-    def __init__(self, raw, sigma ):
+    def __init__(self, raw, sigma ,name):
 
         self.raw = raw
         self.sigma = sigma
-
+        self.nn = name
     def __call__(self):
 
         result = blockF.blockwiseMultiGrayscaleDilation(self.raw,sigma=self.sigma)
@@ -128,7 +130,7 @@ class Dilation(object):
 
     def name(self):
         sigmaStr = float("{0:.2f}".format(self.sigma))
-        return "diletation_"+str(sigmaStr)
+        return "diletation_"+self.nn+"_"+str(sigmaStr)
 
     def free(self):
         pass
@@ -160,14 +162,14 @@ class FromH5File(object):
     def __init__(self, h5path, name):
         self.h5path = h5path
         self.data = None    
-        self.name = name
+        self.nn = name
     def __call__(self):
 
         self.data = vigra.impex.readHDF5(*self.h5path)
         return self.data
 
     def name(self):
-        return self.name
+        return self.nn
 
     def free(self):
         self.data = None
@@ -199,20 +201,18 @@ for dopt in datasetOpts:
 
 
     featureInputs = [ 
-
         # raw data itself
         RawDataInput(raw=rawFloat32), 
         # learned pixel maps
         PmapL1(  dopt['boundaryP1'] ),
-        FromH5File(  dopt['semanticP0'],'exported_data',name='semanticP0' ),
-        FromH5File(  dopt['thinnedDistTransformPMap1'],name='thinnedDistTransformPMap1' ),
-
+        FromH5File(  ( dopt['semanticP0'],'data'),name='semanticP0' ),
+        FromH5File(  ( dopt['thinnedDistTransformPMap1'],'data'),name='thinnedDistTransformPMap1' ),
         # primitive filters on raw data
         [ GradMag(raw=rawFloat32, sigma=s)          for s in fRange(1.0, 5.0,  5)  ],
         [ GaussSmooth(raw=rawFloat32, sigma=s)      for s in fRange(1.0, 5.0,  5)  ],
-        [ HessianEw(raw=rawFloat32, sigma=s)        for s in fRange(1.0, 10.0, 10) ],
-        [ StructTensorEw(raw=rawFloat32, sigma=s)   for s in fRange(1.0, 5.0,  5)  ],
-        [ Dilation(raw=rawFloat32, sigma=s)         for s in fRange(1.0, 5.0,  5)  ]
+        [ HessianEw(raw=rawFloat32, scale=s)        for s in fRange(1.0, 10.0, 10) ],
+        [ StructTensorEw(raw=rawFloat32, scale=s)   for s in fRange(1.0, 5.0,  5)  ],
+        [ Dilation(raw=rawFloat32, sigma=s, name='on_raw')         for s in fRange(1.0, 5.0,  5)  ]
     ]
 
     # maybe merge list
@@ -233,24 +233,27 @@ for dopt in datasetOpts:
         voxelData  = fi().squeeze()
         name = fi.name()
 
-        if voxelData.ndims == 3:
+        if voxelData.ndim == 3:
             voxelData = voxelData[:, :, :, None]
 
+
+        gc.collect()   
 
 
         for c in range(voxelData.shape[3]):
 
+            vd = voxelData[:, :, :, c]
             print "DO ACCUMULATOION :", name
 
-            raise RuntimeError("check for existence here")
+            #raise RuntimeError("check for existence here")
 
             with vigra.Timer("accumulate features"):
-                eFeatures, nFeatures = learning.accumulateFeatures(rag=rag, volume=voxelData)
+                eFeatures, nFeatures = learning.accumulateFeatures(rag=rag, volume=vd)
 
             fi.free()
 
             #with vigra.Timer("save edge features"):
-            vigra.impex.writeHDF5(eFeatures, featureDir+name+'_c_%d.h5'%d, 'edgeFeatures')
-            vigra.impex.writeHDF5(nFeatures, featureDir+name+'_c_%d.h5'%d, 'nodeFeatures')
+            vigra.impex.writeHDF5(eFeatures, featureDir+name+'_c_%d.h5'%c, 'edgeFeatures')
+            vigra.impex.writeHDF5(nFeatures, featureDir+name+'_c_%d.h5'%c, 'nodeFeatures')
 
     #print result.shape, result

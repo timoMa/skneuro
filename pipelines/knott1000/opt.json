@@ -97,9 +97,10 @@
         "ragL1EdgeGt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/rag_l1_edge_gt.h5",
         "oversegL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/overseg_l1_gt.h5",
         "ragFeatureDir" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/ragfeatures/",
-        "ragFeatures" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/features.h5"
+        "ragFeatures" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/features.h5",
 
-
+        // where to store the random forests from active learning
+        "activeRfDir": "/mnt/CLAWS1/tbeier/data/knott1000_results/train/activeRf/"
     },
 
     "test" : {
@@ -131,6 +132,9 @@
         "ragL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/rag_l1_gt.h5",
         "oversegL1Gt" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/overseg_l1_gt.h5",
         "ragFeatureDir" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/ragfeatures/",
-        "ragFeatures" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/features.h5"
+        "ragFeatures" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/features.h5",
+
+        // result of rf
+        "segLabels" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/segLabels.h5"
     }
 }

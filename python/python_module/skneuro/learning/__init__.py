@@ -35,3 +35,107 @@ def accumulateFeatures(rag, volume, options=None):
                               options=options)
     return res
 
+
+
+
+
+
+class GraphData(object):
+    def __init__(self, rag, eX, nX, eSize, nSize):
+        self.rag = rag
+        self.eX = eX
+        self.nX = nX
+        self.eSize = eSize
+        self.nSize = nSize
+
+
+class ActiveGraphLearning(object):
+    def __init__(self):
+        pass
+
+    def initalTraining(self, graphData, eY, rfPath, rfPathNew):
+        # do the inital training
+        mg = graphs.mergeGraph(rag)
+        df = graphs.NeuroDynamicFeatures(self.rag, mg)
+
+        # assign features
+        df.assignEdgeCues(graphData.eX)
+        df.assignNodeCues(graphData.nX)
+        df.assignEdgeSizes(graphData.eSize)
+        df.assignNodeSizes(graphData.nSize)
+
+        # assign labels
+        df.assignLabels(eY)
+
+        # register callbacks
+        df.registerCallbacks()
+
+
+        # the training set from level 0
+        features, labels  = df.computeInitalTrainingSet()
+
+        print "train random forest"
+        rf = vigra.learning.RandomForest(treeCount=100)
+
+        print "save random forest"
+        rf.writeHDF5(rfPath, 'rf')
+
+        print "save features and labels "
+        vigra.impex.writeHDF5(features, rfPath, 'X')
+        vigra.impex.writeHDF5(labels, rfPath, 'Y')
+
+
+
+
+    def getNewRf(graphData, eY, rfPath):
+
+        print "load random forest"
+        rf = vigra.learning.RandomForest(rfPath,'rf')
+
+        X = vigra.impex.readHDF5(rfPath, 'X')
+        Y = vigra.impex.readHDF5(rfPath, 'Y')
+
+        mg = graphs.mergeGraph(rag)
+        df = graphs.NeuroDynamicFeatures(self.rag, mg)
+
+        # assign features
+        df.assignEdgeCues(graphData.eX)
+        df.assignNodeCues(graphData.nX)
+        df.assignEdgeSizes(graphData.eSize)
+        df.assignNodeSizes(graphData.nSize)
+
+        # assign labels
+        df.assignLabels(eY)
+
+        # register callbacks
+        df.registerCallbacks()
+
+        raise RuntimeError("FROM HERE NOT IMPLEMENTED")
+
+
+        nX, nY = df.getNewFeatures(rf=rf)
+
+
+
+        if nX is None or nY is None:
+            return "done"
+
+
+        X = numpy.concatenate([X,aX], axis=0)
+        Y = numpy.concatenate([Y,aY], axis=0)
+
+        print "train random forest"
+        rf = vigra.learning.RandomForest(treeCount=100)
+
+        print "save random forest"
+        rf.writeHDF5(rfPath, 'rf')
+
+        print "save features and labels "
+        vigra.impex.writeHDF5(features, rfPath, 'X')
+        vigra.impex.writeHDF5(labels, rfPath, 'Y')
+
+        return "not_done"
+
+
+    def predict(self):
+        pass

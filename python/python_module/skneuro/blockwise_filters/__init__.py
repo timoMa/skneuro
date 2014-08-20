@@ -43,6 +43,18 @@ def blockwiseMedianSmoothing(image, radius, mode='reflect', cval=0.0, origin=0,
 
 
 
+def blockwiseMultiGrayscaleDilation(image, sigma, out=None, blockShape=None, nThreads=None):
+    blockShape, out = _prepare(image.shape, blockShape)
+    margin = int(3.0*sigma + 1.0+0.5)
+    func = vigra.filters.multiGrayscaleDilation
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(volume=image),
+        paramKwagrs=dict(sigma=sigma), out=out)
+    return out
+
+
+
+
+
 
 def blockwiseGaussianGradientMagnitude(image, sigma, out=None, blockShape=None, nThreads=None):
     blockShape, out = _prepare(image.shape, blockShape)

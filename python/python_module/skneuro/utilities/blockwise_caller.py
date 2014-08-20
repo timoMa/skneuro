@@ -1,12 +1,15 @@
 from _utilities import Blocking3d, extractBlock, writeFromBlock
 
-from thread_pool import ThreadPool
 import vigra
 import numpy
 import threading
 from sys import stdout
 from multiprocessing import cpu_count
 import progressbar
+import gc
+from Queue import Queue
+import concurrent.futures
+
 
 def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, out,
                     verbose=True, printNth=10):
@@ -15,7 +18,7 @@ def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, o
     shape = inputKwargs.itervalues().next().shape
     blocking = Blocking3d(shape,blockShape)
     nBlocks = len(blocking)
-    pool = ThreadPool(nThreads)
+    #pool = ThreadPool(nThreads)
 
 
     def threadFunction(f, blocking, blockIndex, margin, inputKwargs, paramKwagrs, out, lock, 
@@ -38,9 +41,8 @@ def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, o
         blockOutput = f(**kwargs).squeeze()
         #write back to global out
 
+
         writeFromBlock(block, blockOutput, out)
-
-
 
         if doneBlocks is not None:
             doneBlocks[blockIndex] = 1
@@ -53,17 +55,20 @@ def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, o
                 lock.release()
 
     lock = threading.Lock()
-    doneBlocks = None
+
     if verbose:
         doneBlocks = numpy.zeros(nBlocks)
-    for blockIndex in range(nBlocks):
+    
 
-        # 2) Add the task to the queue
-        pool.add_task(threadFunction, f=f, blocking=blocking, margin=margin,
-                      blockIndex=blockIndex, inputKwargs=inputKwargs,
-                      paramKwagrs=paramKwagrs, out=out, lock=lock, doneBlocks=doneBlocks)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=nThreads) as executor:
+        for blockIndex in range(nBlocks):
+            executor.submit(threadFunction, f=f, blocking=blocking, margin=margin,
+                    blockIndex=blockIndex, inputKwargs=inputKwargs,
+                    paramKwagrs=paramKwagrs, out=out, lock=lock, doneBlocks=doneBlocks)
 
-    pool.wait_completion()
+    del doneBlocks
+    doneBlocks = None
+
     if verbose:
         stdout.write("\r100.000000 %%")
         stdout.write("\n")

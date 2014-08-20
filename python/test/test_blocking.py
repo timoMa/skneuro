@@ -3,19 +3,19 @@ from skneuro import denoising
 from skneuro import blockwise_filters
 import numpy
 import sys
+import psutil
 
 
+def test_blockwise():
 
-def test_blockwise_gauss():
-
-    shape = [100, 100, 100]
-    blockShape = [32, 32, 32]
+    shape = [1000, 1000, 400]
+    blockShape = [100, 100, 100]
 
     totalData = numpy.random.rand(*shape).astype(numpy.float32)
 
     print "blockwiseGaussianSmoothing"
-    result = blockwise_filters.blockwiseGaussianSmoothing(totalData,1.0,nThreads=3,blockShape=blockShape)
-    print "blockwiseGaussianGradientMagnitude"
-    result = blockwise_filters.blockwiseGaussianGradientMagnitude(totalData,1.0,nThreads=3,blockShape=blockShape)
-    print "done"
-    
+    result = blockwise_filters.blockwiseGaussianSmoothing(totalData,1.0,nThreads=12,blockShape=blockShape)
+    for x in range(20):
+        blockwise_filters.blockwiseGaussianGradientMagnitude(totalData,1.0,nThreads=12,blockShape=blockShape)
+
+test_blockwise()

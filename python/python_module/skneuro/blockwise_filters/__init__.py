@@ -9,7 +9,7 @@ import vigra
 def _prepare(shape, blockShape=None, out=None, dtype=numpy.float32, 
              channels=1):
     if blockShape is None:
-        blockShape = [min(s, 80) for s in shape]
+        blockShape = [min(s, 100) for s in shape]
     if out is None:
         if channels>1:
             s = tuple(shape)+(channels,)

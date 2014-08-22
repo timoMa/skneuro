@@ -135,6 +135,7 @@
         "ragFeatures" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/features.h5",
 
         // result of rf
-        "segLabels" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/segLabels.h5"
+        "ragRes" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/ragRes.h5",
+        "labelRes" : "/mnt/CLAWS1/tbeier/data/knott1000_results/test/labelRes.h5"
     }
 }

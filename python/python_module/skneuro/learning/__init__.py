@@ -52,9 +52,10 @@ class GraphData(object):
 
 
 class ActiveGraphLearning(object):
-    def __init__(self):
-        pass
-
+    
+    def __init__(self, treeCount=1000, noise=0.001):
+        self.treeCount = treeCount
+        self.noise = noise
     def initialTraining(self, graphData, eY, rfPath):
         # do the inital training
         mg = graphs.mergeGraph(graphData.rag)
@@ -76,13 +77,17 @@ class ActiveGraphLearning(object):
         # the training set from level 0
         features, labels  = df.computeInitalTrainingSet()
 
-        print "train random forest"
-        rf = vigra.learning.RandomForest(treeCount=1000)
+        print "features/labels.shape", features.shape, labels.shape
 
-        #rf.learnRF(features, labels)
+        print "train random forest"
+        rf = vigra.learning.RandomForest(treeCount=self.treeCount)
+
+        oob = rf.learnRF(features, labels)
+
+        print "OOB", oob
 
         print "save random forest"
-        #rf.writeHDF5(rfPath, 'rf')
+        rf.writeHDF5(rfPath, 'rf')
 
         print "save features and labels "
         vigra.impex.writeHDF5(features, rfPath, 'X')
@@ -116,7 +121,7 @@ class ActiveGraphLearning(object):
 
 
 
-        ret = df.getNewFeatureByClustering(rf=rf)
+        ret = df.getNewFeatureByClustering(rf=rf,noiseMagnitude=self.noise)
 
 
 
@@ -132,7 +137,7 @@ class ActiveGraphLearning(object):
         Y = numpy.concatenate([Y,nY], axis=0)
 
         print "train random forest"
-        rf = vigra.learning.RandomForest(treeCount=1000)
+        rf = vigra.learning.RandomForest(treeCount=self.treeCount)
 
         oob = rf.learnRF(X, Y)
 
@@ -149,7 +154,7 @@ class ActiveGraphLearning(object):
         return "not_done"
 
 
-    def predict(self, graphData, rfPath):
+    def predict(self, graphData, rfPath, stopProbs=[0.5]):
         print "load random forest"
         rf = vigra.learning.RandomForest(rfPath,'rf')
         mg = graphs.mergeGraph(graphData.rag)
@@ -167,5 +172,9 @@ class ActiveGraphLearning(object):
         # register callbacks
         df.registerCallbacks()
 
-        labels = df.predict(rf=rf, stopProb=0.5)
+        rLabels = []
+        for sp in stopProbs:
+            print "sp",sp
+            labels = df.predict(rf=rf, stopProb=float(sp))
+            rLabels.append(labels)
         return labels

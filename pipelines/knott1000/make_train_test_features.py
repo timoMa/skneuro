@@ -17,8 +17,8 @@ optJsonFile = "opt.json"
 opt = wf.loadJson(optJsonFile)
 
 
-datasetOpts = [opt['test'],opt['train']]
-#datasetOpts = [opt['train']]
+datasetOpts = [opt['test']]
+datasetOpts = [opt['train']]
 
 
 datafiles = ["rawData", "oversegL0", "oversegL1", "oversegL1Gt", "semanticP0", "boundaryP1"]
@@ -38,7 +38,7 @@ class RawDataInput(object):
         return "raw"
 
     def free(self):
-        self.raw = None
+        pass
 
 
 class HessianEw(object):
@@ -154,7 +154,7 @@ class PmapL1(object):
         return "pmapl1"
 
     def free(self):
-        self.data = None
+        del self.data 
 
 
 
@@ -172,7 +172,7 @@ class FromH5File(object):
         return self.nn
 
     def free(self):
-        self.data = None
+        del self.data 
 
 
 
@@ -230,14 +230,16 @@ for dopt in datasetOpts:
 
     for fi in mInputs :
 
-        voxelData  = fi().squeeze()
+
         name = fi.name()
+        voxelData  = fi().squeeze()
+        
 
         if voxelData.ndim == 3:
             voxelData = voxelData[:, :, :, None]
 
 
-        gc.collect()   
+        
 
 
         for c in range(voxelData.shape[3]):
@@ -250,10 +252,24 @@ for dopt in datasetOpts:
             with vigra.Timer("accumulate features"):
                 eFeatures, nFeatures = learning.accumulateFeatures(rag=rag, volume=vd)
 
-            fi.free()
-
             #with vigra.Timer("save edge features"):
             vigra.impex.writeHDF5(eFeatures, featureDir+name+'_c_%d.h5'%c, 'edgeFeatures')
             vigra.impex.writeHDF5(nFeatures, featureDir+name+'_c_%d.h5'%c, 'nodeFeatures')
+
+            del eFeatures
+            del nFeatures
+            del vd
+
+            eFeatures = None
+            nFeatures = None
+            vd = None
+
+        del voxelData
+        voxelData = None
+        fi.free()
+        gc.collect()   
+
+        del fi 
+        fi = None
 
     #print result.shape, result

@@ -41,9 +41,13 @@ graphData = learning.GraphData(rag=rag, eX=eX, nX=nX,
 
 rfFolder = dopt['activeRfDir'].encode('ASCII')
 
-if True :
 
-    learner = learning.ActiveGraphLearning()
+treeCount = 1000
+noise = 0.001
+
+if False :
+
+    learner = learning.ActiveGraphLearning(treeCount=treeCount, noise=noise)
     rf0Path = rfFolder + 'rf0.h5'
     rf0Path = rf0Path.encode('ASCII')
     learner.initialTraining(graphData = graphData, eY=eY, rfPath=rf0Path)
@@ -51,8 +55,8 @@ if True :
 
 if True :
 
-    learner = learning.ActiveGraphLearning()
-    rfNumber = 0
+    learner = learning.ActiveGraphLearning(treeCount=treeCount, noise=noise)
+    rfNumber = 1
 
     while(True):
 

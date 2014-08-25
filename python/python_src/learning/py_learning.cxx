@@ -23,6 +23,7 @@
 
 
 void export_feature_extraction();
+void export_compare();
 // export my module
 BOOST_PYTHON_MODULE_INIT(_learning) {
 
@@ -35,4 +36,5 @@ BOOST_PYTHON_MODULE_INIT(_learning) {
 
 
     export_feature_extraction();
+    export_compare();
 }

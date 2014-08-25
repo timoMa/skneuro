@@ -8,6 +8,7 @@
 #--------------------------------------------------------------
 add_library( _learning SHARED  py_learning.cxx
     py_feature_extraction.cxx
+    py_compare.cxx
 )
 
 

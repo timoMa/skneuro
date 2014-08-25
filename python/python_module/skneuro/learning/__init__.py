@@ -1,5 +1,6 @@
 import numpy
 from _learning import _accumulateFeatures, AccumulatorOptions
+from _learning import *
 from ..parallel import arrayMinMax
 import vigra
 from vigra import graphs 
@@ -154,7 +155,7 @@ class ActiveGraphLearning(object):
         return "not_done"
 
 
-    def predict(self, graphData, rfPath, stopProbs=[0.5]):
+    def predict(self, graphData, rfPath, stopProbs=[0.5], damping=0.05):
         print "load random forest"
         rf = vigra.learning.RandomForest(rfPath,'rf')
         mg = graphs.mergeGraph(graphData.rag)
@@ -172,9 +173,13 @@ class ActiveGraphLearning(object):
         # register callbacks
         df.registerCallbacks()
 
+
+        stopProbsArray = numpy.array(stopProbs,dtype=numpy.float32)
+
+        labelsArray = df.predict(rf=rf, stopProbs=stopProbsArray, damping=float(damping))
+
         rLabels = []
-        for sp in stopProbs:
+        for i,sp in enumerate(stopProbs):
             print "sp",sp
-            labels = df.predict(rf=rf, stopProb=float(sp))
-            rLabels.append(labels)
-        return labels
+            rLabels.append(labelsArray[i,:])
+        return rLabels

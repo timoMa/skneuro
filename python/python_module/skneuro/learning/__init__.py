@@ -58,6 +58,12 @@ class ActiveGraphLearning(object):
         self.treeCount = treeCount
         self.noise = noise
 
+    def getNewRf(self, treeCount=None):
+        if treeCount is None:
+            treeCount = self.treeCount
+        return vigra.learning.RandomForest(treeCount=treeCount, min_split_node_size=4,
+                                           sample_classes_individually=True)
+
     def initialTraining(self, graphData, eY, rfPath):
         # do the inital training
         mg = graphs.mergeGraph(graphData.rag)
@@ -83,8 +89,7 @@ class ActiveGraphLearning(object):
         print "features/labels.shape", features.shape, labels.shape
 
         print "train random forest"
-        rf = vigra.learning.RandomForest(treeCount=self.treeCount)
-
+        rf = self.getNewRf(treeCount=255)
         oob = rf.learnRF(features, labels)
 
         print "OOB", oob
@@ -146,7 +151,7 @@ class ActiveGraphLearning(object):
         Y = numpy.concatenate([Y,nY], axis=0)
 
         print "train random forest"
-        rf = vigra.learning.RandomForest(treeCount=self.treeCount)
+        rf = self.getNewRf(treeCount=255)
 
         oob = rf.learnRF(X, Y)
 

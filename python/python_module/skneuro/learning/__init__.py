@@ -54,6 +54,7 @@ class GraphData(object):
 
 class ActiveGraphLearning(object):
     
+    
     def __init__(self, treeCount=1000, noise=0.001):
         self.treeCount = treeCount
         self.noise = noise

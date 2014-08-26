@@ -54,12 +54,12 @@ class GraphData(object):
 
 class ActiveGraphLearning(object):
     
-    
+
     def __init__(self, treeCount=1000, noise=0.001):
         self.treeCount = treeCount
         self.noise = noise
 
-    def getNewRf(self, treeCount=None):
+    def getFreshRf(self, treeCount=None):
         if treeCount is None:
             treeCount = self.treeCount
         return vigra.learning.RandomForest(treeCount=treeCount, min_split_node_size=4,
@@ -90,7 +90,7 @@ class ActiveGraphLearning(object):
         print "features/labels.shape", features.shape, labels.shape
 
         print "train random forest"
-        rf = self.getNewRf(treeCount=255)
+        rf = self.getFreshRf(treeCount=1000)
         oob = rf.learnRF(features, labels)
 
         print "OOB", oob
@@ -152,7 +152,7 @@ class ActiveGraphLearning(object):
         Y = numpy.concatenate([Y,nY], axis=0)
 
         print "train random forest"
-        rf = self.getNewRf(treeCount=255)
+        rf = self.getFreshRf(treeCount=1000)
 
         oob = rf.learnRF(X, Y)
 

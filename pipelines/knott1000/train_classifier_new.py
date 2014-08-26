@@ -16,8 +16,6 @@ optJsonFile = "opt.json"
 opt = wf.loadJson(optJsonFile)
 dopt = opt['train']
 
-featPerFile = 22
-
 print "load cues"
 eX = vigra.impex.readHDF5(dopt['ragFeatures'], 'edgeFeatures')
 nX = vigra.impex.readHDF5(dopt['ragFeatures'], 'nodeFeatures')
@@ -47,6 +45,7 @@ noise = 0.001
 
 if False :
 
+    print "do active initial learning"
     learner = learning.ActiveGraphLearning(treeCount=treeCount, noise=noise)
     rf0Path = rfFolder + 'rf0.h5'
     rf0Path = rf0Path.encode('ASCII')
@@ -56,7 +55,7 @@ if False :
 if True :
 
     learner = learning.ActiveGraphLearning(treeCount=treeCount, noise=noise)
-    rfNumber = 1
+    rfNumber = 0
 
     while(True):
 

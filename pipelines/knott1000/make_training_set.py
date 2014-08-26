@@ -1,7 +1,6 @@
 import vigra
 import vigra.graphs as graphs
 import skneuro
-import skneuro.oversegmentation as oseg
 import skneuro.blockwise_filters as blockF
 import numpy
 import gc

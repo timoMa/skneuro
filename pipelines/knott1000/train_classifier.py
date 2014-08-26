@@ -16,7 +16,7 @@ optJsonFile = "opt.json"
 opt = wf.loadJson(optJsonFile)
 dopt = opt['train']
 
-featPerFile = 22
+
 
 print "load cues"
 edgeCues = vigra.impex.readHDF5(dopt['ragFeatures'], 'edgeFeatures')

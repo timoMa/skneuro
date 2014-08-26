@@ -57,6 +57,7 @@ class ActiveGraphLearning(object):
     def __init__(self, treeCount=1000, noise=0.001):
         self.treeCount = treeCount
         self.noise = noise
+
     def initialTraining(self, graphData, eY, rfPath):
         # do the inital training
         mg = graphs.mergeGraph(graphData.rag)
@@ -76,6 +77,7 @@ class ActiveGraphLearning(object):
 
 
         # the training set from level 0
+        print "compute inital training set"
         features, labels  = df.computeInitalTrainingSet()
 
         print "features/labels.shape", features.shape, labels.shape
@@ -90,9 +92,15 @@ class ActiveGraphLearning(object):
         print "save random forest"
         rf.writeHDF5(rfPath, 'rf')
 
+        print "save out of bag"
+        oobA = numpy.array([oob],dtype=numpy.float32)
+        vigra.impex.writeHDF5(oobA, rfPath, 'oob')
+
         print "save features and labels "
         vigra.impex.writeHDF5(features, rfPath, 'X')
         vigra.impex.writeHDF5(labels, rfPath, 'Y')
+
+
 
 
 
@@ -146,6 +154,10 @@ class ActiveGraphLearning(object):
 
         print "save random forest"
         rf.writeHDF5(rfPathNew, 'rf')
+
+        print "save out of bag"
+        oobA = numpy.array([oob],dtype=numpy.float32)
+        vigra.impex.writeHDF5(oobA, rfPathNew, 'oob')
 
         print "save features and labels "
         vigra.impex.writeHDF5(X, rfPathNew, 'X')

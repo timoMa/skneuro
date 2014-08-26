@@ -43,7 +43,7 @@ rfFolder = dopt['activeRfDir'].encode('ASCII')
 treeCount = 1000
 noise = 0.001
 
-if False :
+if True :
 
     print "do active initial learning"
     learner = learning.ActiveGraphLearning(treeCount=treeCount, noise=noise)
@@ -55,7 +55,7 @@ if False :
 if True :
 
     learner = learning.ActiveGraphLearning(treeCount=treeCount, noise=noise)
-    rfNumber = 1
+    rfNumber = 0
 
     while(True):
 

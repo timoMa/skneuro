@@ -55,7 +55,7 @@ if False :
 if True :
 
     learner = learning.ActiveGraphLearning(treeCount=treeCount, noise=noise)
-    rfNumber = 0
+    rfNumber = 1
 
     while(True):
 

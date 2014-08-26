@@ -10,6 +10,7 @@ import gc
 from Queue import Queue
 import concurrent.futures
 
+import thread
 
 def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, out,
                     verbose=True, printNth=10):
@@ -60,11 +61,6 @@ def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, o
         doneBlocks = numpy.zeros(nBlocks)
     
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=nThreads) as executor:
-        for blockIndex in range(nBlocks):
-            executor.submit(threadFunction, f=f, blocking=blocking, margin=margin,
-                    blockIndex=blockIndex, inputKwargs=inputKwargs,
-                    paramKwagrs=paramKwagrs, out=out, lock=lock, doneBlocks=doneBlocks)
 
     del doneBlocks
     doneBlocks = None

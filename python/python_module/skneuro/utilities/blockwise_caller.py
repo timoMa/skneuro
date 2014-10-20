@@ -60,11 +60,17 @@ def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, o
     if verbose:
         doneBlocks = numpy.zeros(nBlocks)
     
+    with concurrent.futures.ThreadPoolExecutor(max_workers=nThreads) as executor:
+        for blockIndex in range(nBlocks):
+            executor.submit(threadFunction, f=f, blocking=blocking, margin=margin,
+                            blockIndex=blockIndex, inputKwargs=inputKwargs,
+                            paramKwagrs=paramKwagrs, out=out, lock=lock, doneBlocks=doneBlocks)
+        del doneBlocks
+        doneBlocks = None
 
+        if verbose:
+            stdout.write("\r100.000000 %%")
+            stdout.write("\n")
 
     del doneBlocks
     doneBlocks = None
-
-    if verbose:
-        stdout.write("\r100.000000 %%")
-        stdout.write("\n")

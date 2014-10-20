@@ -100,7 +100,11 @@
         "ragFeatures" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/features.h5",
 
         // where to store the random forests from active learning
-        "activeRfDir": "/mnt/CLAWS1/tbeier/data/knott1000_results/train/activeRf/"
+        "activeRfDir": "/mnt/CLAWS1/tbeier/data/knott1000_results/train/activeRf/",
+
+        // result of rf
+        "ragRes" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/ragRes.h5",
+        "labelRes" : "/mnt/CLAWS1/tbeier/data/knott1000_results/train/labelRes.h5"
     },
 
     "test" : {

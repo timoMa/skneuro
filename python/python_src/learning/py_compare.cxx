@@ -35,7 +35,7 @@ namespace bp = boost::python;
 
 
 
-
+template<class T>
 double pyRandIndex(
     vigra::NumpyArray<1, UInt32> gt,
     vigra::NumpyArray<1, UInt32> seg,
@@ -44,6 +44,7 @@ double pyRandIndex(
     return andres::randIndex(gt.begin(),gt.end(),seg.begin(),ignoreDefaultLabel);
 }
 
+template<class T>
 double pyVariationOfInformation(
     vigra::NumpyArray<1, UInt32> gt,
     vigra::NumpyArray<1, UInt32> seg,
@@ -53,22 +54,30 @@ double pyVariationOfInformation(
 }
 
 
+template<class T>
+void export_compare_t(){
+
+    bp::def("randIndex",vigra::registerConverters(&pyRandIndex<T>),
+        (
+            bp::arg("a"),
+            bp::arg("b"),
+            bp::arg("ignoreDefaultLabel")
+        )
+    );
+
+    bp::def("variationOfInformation",vigra::registerConverters(&pyVariationOfInformation<T>),
+        (
+            bp::arg("a"),
+            bp::arg("b"),
+            bp::arg("ignoreDefaultLabel")
+        )
+    );
+}
+
+
 
 void export_compare(){
 
-    bp::def("randIndex",vigra::registerConverters(&pyRandIndex),
-        (
-            bp::arg("a"),
-            bp::arg("b"),
-            bp::arg("ignoreDefaultLabel")
-        )
-    );
-
-    bp::def("variationOfInformation",vigra::registerConverters(&pyVariationOfInformation),
-        (
-            bp::arg("a"),
-            bp::arg("b"),
-            bp::arg("ignoreDefaultLabel")
-        )
-    );
+  export_compare_t<vigra::UInt32>();
+  export_compare_t<vigra::UInt16>();
 }

@@ -90,7 +90,7 @@ class ActiveGraphLearning(object):
         print "features/labels.shape", features.shape, labels.shape
 
         print "train random forest"
-        rf = self.getFreshRf(treeCount=1000)
+        rf = self.getFreshRf(treeCount=255)
         oob = rf.learnRF(features, labels)
 
         print "OOB", oob

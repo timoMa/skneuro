@@ -1,6 +1,6 @@
 from progressbar import *               # just a simple progress bar
 
-
+import pickle
 
 
 import numpy
@@ -11,13 +11,14 @@ from sklearn.ensemble import RandomForestClassifier
 class SuperRf(object):
 
     def __init__(self):
-        self.maxIter  = 100
-        self.nSamples = 'sqrt'
+        self.maxIter  = 4
+        self.nSamples = 5000
         self.r_c      = []
-        self.useRawFeatures = True
-        self.nClasses = None
+        self.useRawFeatures = False
+        self.onlyRaw = False
+        self.nClasses = 2
+        self.transformBatchSize = 90000 
 
-        self.transformBatchSize = 3000
 
     def fit(self, X,Y,U):
         if self.nSamples == 'sqrt':
@@ -39,14 +40,17 @@ class SuperRf(object):
             # concatenate XX and UU
             XXUU = numpy.concatenate([XX,UU], axis=0)
             # get a non linear mapping
-            XXUU_NL, R = self._getNlMapping(XXUU)
 
+            if self.onlyRaw == False:
 
-            # extract the labeled part of XXUU_NL
-            XX_NL = XXUU_NL[0:XX.shape[0], : ]
-
-            if self.useRawFeatures :
-                XX_NL = numpy.concatenate([XX_NL,XX],axis=1)
+                XXUU_NL, R = self._getNlMapping(XXUU)
+                # extract the labeled part of XXUU_NL
+                XX_NL = XXUU_NL[0:XX.shape[0], : ]
+                if self.useRawFeatures :
+                    XX_NL = numpy.concatenate([XX,XX_NL],axis=1)
+            else:
+                R = dict()
+                XX_NL = XX
 
 
 
@@ -68,13 +72,15 @@ class SuperRf(object):
             print iterNumber
             for start in range(0, nSamples, tbc):
                 stop = min(start+tbc,nSamples)
-                #print 'st',start, stop
+                print 'st',start, stop, nSamples
                 XX = U[start:stop, :]
 
-
-                XX_NL = r.transform(XX)
-                if self.useRawFeatures:
-                    XX_NL = numpy.concatenate([XX,XX_NL],axis=1)
+                if self.onlyRaw == False:
+                    XX_NL = r.transform(XX)
+                    if self.useRawFeatures:
+                        XX_NL = numpy.concatenate([XX,XX_NL],axis=1)
+                else:
+                    XX_NL = XX
                 P = c.predict_proba(XX_NL)
                 CC = classProb[start:stop, :] 
                 CC += P[:, :]
@@ -84,37 +90,58 @@ class SuperRf(object):
         self.r_c.append((R,C))
 
     def _trainSubClassifier(self, X, Y):
-        clf = RandomForestClassifier(n_estimators=100)
+        clf = RandomForestClassifier(n_estimators=40)
         clf.fit(X,Y)
         return clf
 
     def _getNlMapping(self, X):
-        kpca = KernelPCA(n_components=4,kernel="rbf", fit_inverse_transform=False, gamma=10)
+        kpca = KernelPCA(n_components=10,kernel="rbf", fit_inverse_transform=False, gamma=2.5)
         X_pca = kpca.fit_transform(X)
         return X_pca, kpca
 
-    def _getSamples(self, X, Y, U):
-        rL  = numpy.random.permutation(X.shape[0])[0:self.nSamples]
-        XX = X[rL, :]
-        YY = Y[rL]
+    def _getSamples(self, X, Y, U):       
+
+        # get subsets
+        w0 = numpy.where(Y==0)[0]
+        w1 = numpy.where(Y==1)[0]
+
+        numpy.random.shuffle(w0)
+        w0 =w0[0:self.nSamples/2]
+
+        numpy.random.shuffle(w1)
+        w1 =w1[0:self.nSamples/2]
+
+        w01 = numpy.concatenate([w0, w1])
+
+        XX = X[w01, :]
+        YY = Y[w01]
+
         rUL  = numpy.random.permutation(U.shape[0])[0:self.nSamples]
         UU = U[rUL, :]
 
         return XX, YY, UU
-NL = 1000*100
-NUL = NL*2
-NF = 20
-X =  numpy.random.random([NL,NF])
-U =  numpy.random.random([NUL,NF])
-Y =  numpy.random.randint(0, 2, NL)
 
-print X.shape
+    def saveToFile(self, filepath):
+        pickle.dump(self.r_c, open( filepath, "wb" ) )
+    def loadFromFile(self, filepath):
+        self.r_c = pickle.load(open( filepath, "rb" ))
 
 
+if False:
+    NL = 1000*100
+    NUL = NL*2
+    NF = 20
+    X =  numpy.random.random([NL,NF])
+    U =  numpy.random.random([NUL,NF])
+    Y =  numpy.random.randint(0, 2, NL)
 
-rf = SuperRf()
+    print X.shape
 
-rf.fit(X,Y,U)
-P = rf.predict_proba(U)
 
-print 'P',P
+
+    rf = SuperRf()
+
+    rf.fit(X,Y,U)
+    P = rf.predict_proba(U)
+
+    print 'P',P

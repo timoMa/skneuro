@@ -4,6 +4,7 @@ from _learning import *
 from ..parallel import arrayMinMax
 import vigra
 from vigra import graphs 
+from super_rf import *
 
 def accumulatorOptions(select = None, edgeFeatures=True, nodeFeatures=True,
                        sigmaHist = 1.5, nBins = 20, histMin=None, histMax=None):

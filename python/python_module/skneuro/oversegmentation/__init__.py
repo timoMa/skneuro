@@ -4,6 +4,53 @@ from vigra import numpy
 import skneuro.denoising as denoise
 from  skneuro import addHocViewer
 
+
+
+
+class PiplineObject(object):
+    pass
+
+
+
+class EdgeBleeding(object):
+    def __init__(self):
+        pass
+
+    def evaluate(self, segTrue, segPredicted):
+        pass
+
+
+
+
+class SeededWatershed(PiplineObject):
+
+    def __init__(self):
+        pass
+
+    def parameters(self):
+        pass
+
+    def fit(self, DATA , SEG):
+        pmap = DATA['pmap']
+
+        seeds = _getSeeds(self, DATA, SEG)
+
+
+    def _getSeeds(self, DATA, SEG):
+        """
+
+        """
+
+        # get initial seeds by local minima
+
+        # find k nearest neighbors of each seed
+        # and make 
+        
+        pass
+
+
+
+
 def pmapWatershed(pmap, raw, visu=True, seedThreshold=0.6):
 
     viewGrayData = [(pmap, "pmap") ]

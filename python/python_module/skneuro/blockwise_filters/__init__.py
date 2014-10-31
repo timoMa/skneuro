@@ -29,7 +29,22 @@ def blockwiseGaussianSmoothing(image, sigma, out=None, blockShape=None, nThreads
         paramKwagrs=dict(sigma=sigma), out=out)
     return out
 
+gaussianSmoothing = blockwiseGaussianSmoothing
 
+
+def truncatedDistanceTransform(image, truncateAt, background = True, out=None, blockShape=None, nThreads=cpu_count()):
+    blockShape, out = _prepare(image.shape, blockShape)
+    margin = int(truncateAt + 0.5)
+
+    def func(image, truncateAt, background, out=None):
+        imgv = vigra.taggedView(image, 'xyz')
+        img = numpy.require(imgv, dtype='float32')
+        out = vigra.filters.distanceTransform3D(img, background=background, out=out)
+        out[numpy.where(out>truncateAt)] = truncateAt
+        return out
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
+        paramKwagrs=dict(truncateAt=truncateAt, background=background), out=out)
+    return out
 
 def blockwiseMedianSmoothing(image, radius, mode='reflect', cval=0.0, origin=0,
                              blockShape=None, nThreads=cpu_count()):
@@ -41,6 +56,67 @@ def blockwiseMedianSmoothing(image, radius, mode='reflect', cval=0.0, origin=0,
         paramKwagrs=dict(radius=radius, mode=mode, cval=cval, origin=origin), out=out)
     return out
 
+
+def grayscaleDilation(image,sigma,blockShape=None, nThreads=cpu_count()):
+    blockShape, out = _prepare(image.shape, blockShape)
+    margin = 15
+
+    func = vigra.filters.multiGrayscaleDilation
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
+        paramKwagrs=dict(sigma=sigma), out=out)
+    return out
+
+
+def smoothedGrayscaleDilation(image,sigma,sigmaS,pre=True,post=False, blockShape=None, nThreads=cpu_count()):
+    blockShape, out = _prepare(image.shape, blockShape)
+    margin = 30
+
+    def func(image, sigma,sigmaS,pre,post, out=None):
+        img = vigra.taggedView(image, 'xyz')
+        if pre:
+            imgS = vigra.filters.gaussianSmoothing(img, sigma=sigmaS)
+        else :
+            imgS = img
+
+        
+        if post:
+            imgD = vigra.filters.multiGrayscaleDilation(imgS, sigma=sigma)
+            out = vigra.filters.gaussianSmoothing(imgD, sigma=sigmaS, out=out)
+        else :
+            out = vigra.filters.multiGrayscaleDilation(imgS, sigma=sigma, out=out)
+        return out
+
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
+        paramKwagrs=dict(sigma=sigma, sigmaS=sigmaS,pre=pre,post=post), out=out)
+    return out
+
+
+def grayscaleErosion(image,sigma,blockShape=None, nThreads=cpu_count()):
+    blockShape, out = _prepare(image.shape, blockShape)
+    margin = 15
+
+    func = vigra.filters.multiGrayscaleErosion
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
+        paramKwagrs=dict(sigma=sigma), out=out)
+    return out
+
+def grayscaleOpening(image,sigma,blockShape=None, nThreads=cpu_count()):
+    blockShape, out = _prepare(image.shape, blockShape)
+    margin = 15
+
+    func = vigra.filters.multiGrayscaleOpening
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
+        paramKwagrs=dict(sigma=sigma), out=out)
+    return out
+
+def grayscaleClosing(image,sigma,blockShape=None, nThreads=cpu_count()):
+    blockShape, out = _prepare(image.shape, blockShape)
+    margin = 15
+
+    func = vigra.filters.multiGrayscaleClosing
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
+        paramKwagrs=dict(sigma=sigma), out=out)
+    return out
 
 
 def blockwiseMultiGrayscaleDilation(image, sigma, out=None, blockShape=None, nThreads=None):
@@ -127,6 +203,7 @@ def blockwiseHessianOfGaussianLargestEigenvalues(image,  scale, out=None, blockS
         paramKwagrs=dict(scale=scale), out=out)
     return out
 
+hessianOfGaussianLargestEigenvalues = blockwiseHessianOfGaussianLargestEigenvalues
 
 def binwiseDistaneTransform(image, minmax, bins):
     pass

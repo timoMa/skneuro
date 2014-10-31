@@ -5,24 +5,29 @@ import pickle
 
 import numpy
 
-from sklearn.decomposition import PCA, KernelPCA
+from sklearn.decomposition import PCA, KernelPCA, TruncatedSVD, FastICA
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import load_digits
+
+from sklearn.cross_validation import StratifiedShuffleSplit
+from sklearn.metrics import accuracy_score
+
 
 class SuperRf(object):
 
     def __init__(self):
-        self.maxIter  = 4
-        self.nSamples = 5000
+        self.maxIter  = 20
+        self.nKPCASamples = 200
         self.r_c      = []
-        self.useRawFeatures = False
+        self.useRawFeatures = True
         self.onlyRaw = False
-        self.nClasses = 2
+        self.nClasses = None
         self.transformBatchSize = 90000 
 
 
     def fit(self, X,Y,U):
-        if self.nSamples == 'sqrt':
-            self.nSamples = int(numpy.sqrt(X.shape[0])+0.5)
+        if self.nKPCASamples == 'sqrt' or self.nKPCASamples >= X.shape[0]:
+            self.nKPCASamples = int(numpy.sqrt(X.shape[0])+0.5)
         # get number of classes
         self.nClasses = Y.max()+1
 
@@ -72,7 +77,7 @@ class SuperRf(object):
             print iterNumber
             for start in range(0, nSamples, tbc):
                 stop = min(start+tbc,nSamples)
-                print 'st',start, stop, nSamples
+                #print 'st',start, stop, nSamples
                 XX = U[start:stop, :]
 
                 if self.onlyRaw == False:
@@ -90,58 +95,68 @@ class SuperRf(object):
         self.r_c.append((R,C))
 
     def _trainSubClassifier(self, X, Y):
-        clf = RandomForestClassifier(n_estimators=40)
+        clf = RandomForestClassifier(n_estimators=20)
         clf.fit(X,Y)
         return clf
 
     def _getNlMapping(self, X):
-        kpca = KernelPCA(n_components=10,kernel="rbf", fit_inverse_transform=False, gamma=2.5)
+        kpca = KernelPCA(n_components=20,kernel="rbf", fit_inverse_transform=False, gamma=0.0004)
+        #kpca = FastICA(n_components=20)
         X_pca = kpca.fit_transform(X)
         return X_pca, kpca
 
-    def _getSamples(self, X, Y, U):       
+    def _getSamples(self, X, Y, U):  
 
-        # get subsets
-        w0 = numpy.where(Y==0)[0]
-        w1 = numpy.where(Y==1)[0]
 
-        numpy.random.shuffle(w0)
-        w0 =w0[0:self.nSamples/2]
+        trainSize = float(self.nKPCASamples)/len(Y)
+        trainSize = 0.5
+        sss = StratifiedShuffleSplit( y=Y, n_iter=1,train_size=trainSize,
+                                     test_size=self.nClasses,random_state=numpy.random.randint(0,10000))
 
-        numpy.random.shuffle(w1)
-        w1 =w1[0:self.nSamples/2]
-
-        w01 = numpy.concatenate([w0, w1])
-
-        XX = X[w01, :]
-        YY = Y[w01]
-
-        rUL  = numpy.random.permutation(U.shape[0])[0:self.nSamples]
+        for useIndex,notUseIndex in sss:
+            #print "ui",len(useIndex)
+            XX=X[useIndex,:]
+            YY=Y[useIndex]
+            break
+        rUL  = numpy.random.permutation(U.shape[0])[0:100]
+        #rUL  = numpy.random.permutation(U.shape[0])[0:self.nKPCASamples]
         UU = U[rUL, :]
 
         return XX, YY, UU
 
     def saveToFile(self, filepath):
-        pickle.dump(self.r_c, open( filepath, "wb" ) )
+        pickle.dump([self.r_c,self.nClasses], open( filepath, "wb" ) )
     def loadFromFile(self, filepath):
-        self.r_c = pickle.load(open( filepath, "rb" ))
+        self.r_c, self.nClasses = pickle.load(open( filepath, "rb" ))
 
 
-if False:
-    NL = 1000*100
-    NUL = NL*2
-    NF = 20
-    X =  numpy.random.random([NL,NF])
-    U =  numpy.random.random([NUL,NF])
-    Y =  numpy.random.randint(0, 2, NL)
+if True:
+    import sklearn
+    from sklearn.cross_validation import train_test_split
+    digits = load_digits(n_class=10)
 
+    X = sklearn.preprocessing.scale(digits['data'])
     print X.shape
+    Y = digits['target']
 
+
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.33, random_state=42)
+    X_train, X_ul, Y_train, Y_ul = train_test_split(X_train, Y_train, test_size=0.9, random_state=42)
+
+    print "X",X_train.shape
+    print "Y",Y_train.shape
+
+
+
+   
 
 
     rf = SuperRf()
 
-    rf.fit(X,Y,U)
-    P = rf.predict_proba(U)
-
-    print 'P',P
+    rf.fit(X_train,Y_train,X_ul)
+    P = rf.predict_proba(X_test)
+    Y_predicted = numpy.argmax(P,axis=1)
+    print Y_predicted[0:30]
+    print P.shape
+    print Y_test[0:30]
+    print "accuracy",accuracy_score(Y_test, Y_predicted)

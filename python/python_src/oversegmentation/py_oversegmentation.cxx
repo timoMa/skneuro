@@ -34,5 +34,5 @@ BOOST_PYTHON_MODULE_INIT(_oversegmentation) {
     // No not change 4 line above
 
 
-    export_viscous_watershed();
+    //export_viscous_watershed();
 }

@@ -53,7 +53,7 @@ class BoxLayout(QtGui.QWidget):
         return tree1
 
     def _stackToHdf5Widget(self):
-        
+        pass
 
 
 if __name__ == "__main__":

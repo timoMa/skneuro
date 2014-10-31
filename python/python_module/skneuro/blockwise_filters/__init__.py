@@ -52,6 +52,14 @@ def blockwiseMultiGrayscaleDilation(image, sigma, out=None, blockShape=None, nTh
     return out
 
 
+def blockwiseGaussianGradient(image, sigma, out=None, blockShape=None, nThreads=None):
+    blockShape, out = _prepare(image.shape, blockShape, channels=len(image.shape))
+    margin = int(3.0*sigma + 1.0+0.5)
+    func = vigra.filters.gaussianGradient
+    _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(volume=image),
+        paramKwagrs=dict(sigma=sigma), out=out)
+    return out
+
 
 
 

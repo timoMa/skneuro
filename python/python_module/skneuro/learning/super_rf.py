@@ -130,7 +130,7 @@ class SuperRf(object):
         self.r_c, self.nClasses = pickle.load(open( filepath, "rb" ))
 
 
-if True:
+if False:
     import sklearn
     from sklearn.cross_validation import train_test_split
     digits = load_digits(n_class=10)

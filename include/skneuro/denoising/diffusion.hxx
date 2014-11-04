@@ -16,11 +16,11 @@ template<>
 struct TensorHelp<3>{
     enum{
         XX = 0,
-        YY = 1,
-        ZZ = 2,
-        XY = 3,
+        YY = 3,
+        ZZ = 5,
+        XY = 1,
         XZ = 4,
-        YZ = 5
+        YZ = 2
     };
 };
 
@@ -28,9 +28,9 @@ template<>
 struct TensorHelp<2>{
     enum{
         XX = 0,
-        YY = 1,
+        YY = 2,
         ZZ = -1,
-        XY = 2,
+        XY = 1,
         XZ = -1,
         YZ = -1
     };
@@ -128,10 +128,10 @@ void solveEigen(
             evec[1][1] = 1.0;
         }
         else{
-            evec[0][0] = eA-d;
-            evec[0][1] = c;
-            evec[1][0] = eB-d;
+            evec[1][0] = eA-d;
             evec[1][1] = c;
+            evec[0][0] = eB-d;
+            evec[0][1] = c;
 
             const double s0 = std::sqrt(evec[0][0]*evec[0][0] + evec[0][1]*evec[0][1]);
             const double s1 = std::sqrt(evec[1][0]*evec[1][0] + evec[1][1]*evec[1][1]);
@@ -152,14 +152,15 @@ struct DiffusionParam{
         strength_ = 1.0;
         dt_= 0.2;
         maxT_= 10.0;
-        sigmaStep_= 1.0;
-        C_= 1e-10;
+        sigmaStep_= 0.6;
+        C_= 1.0;
         m_= 1.0;
         eps_= 1e-20;
         alpha_= 0.001;
         useSt_=true;
         sigmaTensor1_= 2.0;
         sigmaTensor2_= 2.0;
+        sigmaSmooth_ = 1.0;
     }
 
     double  strength_;
@@ -173,6 +174,7 @@ struct DiffusionParam{
     bool    useSt_;
     double  sigmaTensor1_;
     double  sigmaTensor2_;
+    double  sigmaSmooth_;
 };
 
 
@@ -321,7 +323,7 @@ struct BlockUpdate{
 
         vigra::MultiArray<DIM, TensorType> structureTensor(subImg.shape());
 
-        vigra::gaussianSmoothMultiArray(subImg, subImgS, 3.0); 
+        vigra::gaussianSmoothMultiArray(subImg, subImgS, param_.sigmaSmooth_); 
 
         //std::cout<<"tensor\n";
         if(param_.useSt_){
@@ -464,6 +466,7 @@ struct BlockUpdate{
                     ll[dd] = alpha + (1.0- alpha)*tmp;
                     //std::cout<<"here!!!!!!!!!!!!!!!!\n";
                 }
+                //std::cout<<"ll "<<ll[dd]<<"\n";
             }
             ll[DIM-1] = alpha;
                          

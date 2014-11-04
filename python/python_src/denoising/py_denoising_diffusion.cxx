@@ -67,6 +67,7 @@ void exportDiffusion(){
         .def_readwrite("useSt", &skneuro::DiffusionParam::useSt_)
         .def_readwrite("sigmaTensor1", &skneuro::DiffusionParam::sigmaTensor1_)
         .def_readwrite("sigmaTensor2", &skneuro::DiffusionParam::sigmaTensor2_)
+        .def_readwrite("sigmaSmooth", &skneuro::DiffusionParam::sigmaSmooth_)
     ;
 
     

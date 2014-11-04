@@ -1,7 +1,8 @@
 import numpy
 import vigra
 
-from _denoising import _nonLocalMean3d, RatioPolicy, NormPolicy
+from _denoising import _nonLocalMean3d
+from _denoising import *
 from functools import partial
 from scipy.ndimage.filters import median_filter
 from multiprocessing import cpu_count

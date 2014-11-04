@@ -138,23 +138,35 @@ public:
         totalBlock_(CoordType(0),shape),
         blocking_(){
 
-        SKNEURO_CHECK_OP(DIMENSION,==,3,"currently only implemented for 3D");
+
+        SKNEURO_CHECK_OP(DIMENSION,<=,3,"currently only implemented for 2D and 3D");
+        SKNEURO_CHECK_OP(DIMENSION,>=,2,"currently only implemented for 2D and 3D");
 
         CoordType blockStart(0);
-        //for(blockStart[0]=0; blockStart[0]<shape[0]; blockStart[0]+=blockShape[0])
-        //for(blockStart[1]=0; blockStart[1]<shape[1]; blockStart[1]+=blockShape[1])
-        //for(blockStart[2]=0; blockStart[2]<shape[2]; blockStart[2]+=blockShape[2]){
+        
+        if(DIMENSION==2){
+            for(blockStart[1]=0; blockStart[1]<shape[1]; blockStart[1]+=blockShape[1])
+            for(blockStart[0]=0; blockStart[0]<shape[0]; blockStart[0]+=blockShape[0]){
 
-        for(blockStart[2]=0; blockStart[2]<shape[2]; blockStart[2]+=blockShape[2])
-        for(blockStart[1]=0; blockStart[1]<shape[1]; blockStart[1]+=blockShape[1])
-        for(blockStart[0]=0; blockStart[0]<shape[0]; blockStart[0]+=blockShape[0]){
+                CoordType blockEnd = blockStart + blockShape;
+                BlockType block(blockStart,blockEnd);
+                // intersect
+                block &= totalBlock_;
+                blocking_.push_back(block);
+            }
+        } 
+        else if(DIMENSION==3){
+            for(blockStart[2]=0; blockStart[2]<shape[2]; blockStart[2]+=blockShape[2])
+            for(blockStart[1]=0; blockStart[1]<shape[1]; blockStart[1]+=blockShape[1])
+            for(blockStart[0]=0; blockStart[0]<shape[0]; blockStart[0]+=blockShape[0]){
 
-            CoordType blockEnd = blockStart + blockShape;
-            BlockType block(blockStart,blockEnd);
-            // intersect
-            block &= totalBlock_;
-            blocking_.push_back(block);
-        }   
+                CoordType blockEnd = blockStart + blockShape;
+                BlockType block(blockStart,blockEnd);
+                // intersect
+                block &= totalBlock_;
+                blocking_.push_back(block);
+            }
+        }    
     }
 
     size_t size()const{

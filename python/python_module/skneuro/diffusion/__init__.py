@@ -28,7 +28,7 @@ class DiffScheme3DRotationInvariant(object):
         gx, gy, gz = self.getGradients(img)
         j0 = Dxx * gx + Dxy * gy + Dxz * uz
         j1 = Dxy * gx + Dyy * gy + Dyz * uz
-        j2 = Dxz * gx + Dyz * gy + Dyz * uz
+        j2 = Dxz * gx + Dyz * gy + Dzz * uz
 
         # make boarder zero
         for j in [j0, j1, j2]:

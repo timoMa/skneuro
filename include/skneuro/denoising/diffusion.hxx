@@ -148,6 +148,14 @@ void solveEigen(
 
 
 struct DiffusionParam{
+
+    enum Eigenmode{
+        WeickertLine,
+        WeickertPlane,
+        EED,
+        CED
+    }
+
     DiffusionParam(){
         strength_ = 1.0;
         dt_= 0.2;
@@ -319,19 +327,19 @@ struct BlockUpdate{
                                                                block_.blockWithBorder().end());
 
         
-        vigra::MultiArray<DIM, T> subImgS(subImg.shape());
+        //vigra::MultiArray<DIM, T> subImgS(subImg.shape());
 
         vigra::MultiArray<DIM, TensorType> structureTensor(subImg.shape());
 
-        vigra::gaussianSmoothMultiArray(subImg, subImgS, param_.sigmaSmooth_); 
+        //vigra::gaussianSmoothMultiArray(subImg, subImgS, param_.sigmaSmooth_); 
 
         //std::cout<<"tensor\n";
         if(param_.useSt_){
-            MyStructTensor<T>::op(subImgS, structureTensor, param_.sigmaTensor1_, 
+            MyStructTensor<T>::op(subImg, structureTensor, param_.sigmaTensor1_, 
                                              param_.sigmaTensor2_);
         }
         else{
-            MyHessianOfGaussian<T>::op(subImgS, structureTensor, param_.sigmaTensor1_);
+            MyHessianOfGaussian<T>::op(subImg, structureTensor, param_.sigmaTensor1_);
         }
         
         

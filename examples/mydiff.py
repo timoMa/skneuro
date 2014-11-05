@@ -11,23 +11,24 @@ if False:
     data = vigra.impex.readHDF5('/home/tbeier/knott-block-full2/d.h5','sbfsem')[0:200,0:200,200].astype('float32').squeeze()
     vigra.impex.writeHDF5(data,'/home/tbeier/knott-block-full2/slice2d.h5','sbfsem')
 else :
-    data = vigra.impex.readHDF5('/mnt/CLAWS1/tbeier/data/knott1000/knott-block-full2/d-gt.h5','sbfsem')[0:100,0:100,0:100].astype('float32')
-    dc = data.copy()
-    data = vigra.impex.readImage('12074.jpg').astype(numpy.float32)
+    #data = vigra.impex.readHDF5('/mnt/CLAWS1/tbeier/data/knott1000/knott-block-full2/d-gt.h5','sbfsem')[0:100,0:100,0:100].astype('float32')
+    #dc = data.copy()
+    data = vigra.impex.readImage('/home/tbeier/Desktop/10683114_980333491982687_1214393854_o.jpg').astype(numpy.float32)
+    data = vigra.resize(data, [data.shape[0]/2, data.shape[1]/2])
     #data = (data[:,:,0]+data[:,:,1]+data[:,:,2])/(3.0)
     dc = data.copy().view(numpy.ndarray)
 
 
 param = dn.DiffusionParam()
-param.strength =1.0
+param.strength = 1.0
 param.alpha = 0.001
 param.maxT = 20.0
 param.dt = 0.25
 param.useSt = True
 
 param.sigmaSmooth = 0.1
-param.sigmaTensor1 = 1.5
-param.sigmaTensor2 = 2
+param.sigmaTensor1 = 0.5
+param.sigmaTensor2 = 4
 param.sigmaStep = 0.5
 param.C = 1.0
 param.m = 1.0

@@ -197,8 +197,6 @@ void solveEigen(
 
 
 
-
-
 template<class T>
 struct MyStructTensor{
 
@@ -523,7 +521,7 @@ void blockwiseDiffusion( vigra::MultiArrayView<DIM,T> & img, const DiffusionPara
     typedef Blocking<int , DIM> BlockingType;
 
     Shape shape = img.shape();
-    Shape blockShape(DIM==3 ? 64 : 256);
+    Shape blockShape(DIM==3 ? 100 : 256);
     for(size_t d=0; d<DIM; ++d){
         blockShape[d] = std::min(blockShape[d], shape[d]);
     }

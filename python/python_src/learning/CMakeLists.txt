@@ -10,6 +10,7 @@ add_library( _learning SHARED  py_learning.cxx
     py_feature_extraction.cxx
     py_compare.cxx
     py_gt_helper.cxx
+    py_grf.cxx
 )
 
 

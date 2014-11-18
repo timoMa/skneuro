@@ -8,6 +8,54 @@
 namespace skneuro{
 
 
+struct DiffusionParam{
+
+    enum Eigenmode{
+        WeickertLine,
+        WeickertPlane,
+        EED,
+        CED
+    };
+
+
+    enum OrientationEstimation{
+        Dynamic, // in each iteration new estimate
+        
+    };
+
+
+
+
+    DiffusionParam(){
+        strength_ = 1.0;
+        dt_= 0.2;
+        maxT_= 10.0;
+        sigmaStep_= 0.6;
+        C_= 1.0;
+        m_= 1.0;
+        eps_= 1e-20;
+        alpha_= 0.001;
+        useSt_=true;
+        sigmaTensor1_= 2.0;
+        sigmaTensor2_= 2.0;
+        sigmaSmooth_ = 1.0;
+    }
+
+    double  strength_;
+    double  dt_;
+    double  maxT_;
+    double  sigmaStep_;
+    double  C_;
+    double  m_;
+    double  eps_;
+    double  alpha_;
+    bool    useSt_;
+    double  sigmaTensor1_;
+    double  sigmaTensor2_;
+    double  sigmaSmooth_;
+};
+
+
 template<unsigned int DIM>
 struct TensorHelp;
 
@@ -147,43 +195,6 @@ void solveEigen(
 
 
 
-struct DiffusionParam{
-
-    enum Eigenmode{
-        WeickertLine,
-        WeickertPlane,
-        EED,
-        CED
-    }
-
-    DiffusionParam(){
-        strength_ = 1.0;
-        dt_= 0.2;
-        maxT_= 10.0;
-        sigmaStep_= 0.6;
-        C_= 1.0;
-        m_= 1.0;
-        eps_= 1e-20;
-        alpha_= 0.001;
-        useSt_=true;
-        sigmaTensor1_= 2.0;
-        sigmaTensor2_= 2.0;
-        sigmaSmooth_ = 1.0;
-    }
-
-    double  strength_;
-    double  dt_;
-    double  maxT_;
-    double  sigmaStep_;
-    double  C_;
-    double  m_;
-    double  eps_;
-    double  alpha_;
-    bool    useSt_;
-    double  sigmaTensor1_;
-    double  sigmaTensor2_;
-    double  sigmaSmooth_;
-};
 
 
 

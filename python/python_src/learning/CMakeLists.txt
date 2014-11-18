@@ -23,6 +23,7 @@ target_link_libraries( _learning
     ${VIGRA_IMPEX_LIBRARY}
     ${VIGRA_NUMPY_CORE_LIBRARY}
     ${VIGRA_NUMPY_IMPEX_LIBRARY}
+    ${LEMON_LIBRARY}
 )
 
 #--------------------------------------------------------------

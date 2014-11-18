@@ -3,8 +3,8 @@ import numpy
 import skneuro
 import skneuro.learning as skl
 
-raw = vigra.impex.readHDF5("/mnt/CLAWS1/tbeier/data/knott1000_results/train/d.h5",'sbfsem').astype('float32')[:,:,:,None]
-gt  = vigra.impex.readHDF5("/mnt/CLAWS1/tbeier/data/knott1000_results/train/d-gt.h5",'data').astype('uint32')
+raw = vigra.impex.readHDF5("/home/tbeier/knott-block-full2/d.h5",'sbfsem').astype('float32')[:,:,:,None]
+gt  = vigra.impex.readHDF5("/home/tbeier/knott-block-full2/d-gt.h5",'sbfsem').astype('uint32')
 
 raw = raw[0:200, 0:200, 0:200]
 gt  =  gt[0:200, 0:200, 0:200]

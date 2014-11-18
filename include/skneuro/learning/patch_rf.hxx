@@ -80,6 +80,20 @@ namespace skneuro{
     }
 
 
+
+    struct RfTopologyParam{
+        enum  GraphTopology{
+            Tree,
+            Dag
+        };
+
+
+        GraphTopology graphTopology_;
+        size_t maxDepth_;
+        size_t minInstancesForSplit_;
+        
+    };
+
     struct PatchRfParam{
         PatchRfParam(){
             patchRadius = 5;

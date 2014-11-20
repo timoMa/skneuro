@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <vigra/random.hxx>
 #include <lemon/list_graph.h>
+#include <vigra/algorithm.hxx>
 
 namespace skneuro{
     
@@ -18,20 +19,30 @@ namespace skneuro{
         std::vector< vigra::TinyVector< vigra::UInt16, 3> >  & coords,
         const int r
     ){
-        vigra::MultiArray<3, bool>  isValid(labels.shape());
-        isValid = true;
+        vigra::MultiArray<3, bool>  isValid(labels.shape(), false);
+        vigra::MultiArray<3, bool>  isValid2(labels.shape(), false);
+
+        for(int z=r+1; z<labels.shape(2)-r-1; ++z)
+        for(int y=r+1; y<labels.shape(1)-r-1; ++y)
+        for(int x=r+1; x<labels.shape(0)-r-1; ++x){
+            isValid(x, y, z) = true;
+            isValid2(x, y, z) = true;
+        }
+
+
         for(int z=0; z<labels.shape(2); ++z)
         for(int y=0; y<labels.shape(1); ++y)
         for(int x=0; x<labels.shape(0); ++x){
-            if(labels(x,y,z) == 0 ){
+            if(isValid(x,y,z) == false ){
                 for(int xx=-1*r; xx <= r; ++xx){
                     int xxx = x+xx;
                     if(xxx>=0 && xxx<labels.shape(0)){
-                        isValid(xxx, y, z) = false;
+                        isValid2(xxx, y, z) = false;
                     }
                 }
             }
         }
+        isValid = isValid2;
         for(int z=0; z<labels.shape(2); ++z)
         for(int y=0; y<labels.shape(1); ++y)
         for(int x=0; x<labels.shape(0); ++x){
@@ -39,11 +50,12 @@ namespace skneuro{
                 for(int yy=-1*r; yy <= r; ++yy){
                     int yyy = y+yy;
                     if(yyy>=0 && yyy<labels.shape(1)){
-                        isValid(x, yyy, z) = false;
+                        isValid2(x, yyy, z) = false;
                     }
                 }
             }
         }
+        isValid = isValid2;
         for(int z=0; z<labels.shape(2); ++z)
         for(int y=0; y<labels.shape(1); ++y)
         for(int x=0; x<labels.shape(0); ++x){
@@ -51,12 +63,12 @@ namespace skneuro{
                 for(int zz=-1*r; zz <= r; ++zz){
                     int zzz = z+zz;
                     if(zzz>=0 && zzz<labels.shape(2)){
-                        isValid(x, y, zzz) = false;
+                        isValid2(x, y, zzz) = false;
                     }
                 }
             }
         }
-
+        isValid = isValid2;
         size_t counter = 0;
         for(int z=0; z<labels.shape(2); ++z)
         for(int y=0; y<labels.shape(1); ++y)
@@ -117,10 +129,10 @@ namespace skneuro{
     void trainTree(
         INSTANCE_ITER instancesBegin, INSTANCE_ITER instancesEnd,
         SPLIT_FINDER & splitFinder, 
-        TOPOLOGY & topology, SPLIT_PARAM_MAP & splitParamMap,
+        TOPOLOGY & topology, SPLIT_PARAM_MAP & splitInfoMap,
         LEAF_NODE_MAP & leafNodeMap
     ){
-        typedef typename SPLIT_PARAM_MAP::Value SplitParam;
+        typedef typename SPLIT_PARAM_MAP::Value SplitInfo;
         typedef typename std::iterator_traits<INSTANCE_ITER>::value_type InstanceDesc;
         typedef TOPOLOGY Topology;
         typedef typename Topology::Node TopologyNode;
@@ -153,7 +165,7 @@ namespace skneuro{
             InstanceVec & outA = inA.instIn;
             InstanceVec & outB = inB.instIn;
 
-            splitParamMap[topoNode] = splitFinder.findSplit(instIn, outA, outB);
+            splitInfoMap[topoNode] = splitFinder.findSplit(instIn, outA, outB);
 
             std::cout<<outA.size()<<" "<<outB.size()<<"\n";
             if(outA.size()>=2 && outB.size()>=2){
@@ -188,6 +200,9 @@ namespace skneuro{
 
     }
 
+    
+
+
     template<class T, class L>
     class PatchSplitFinder{
     public:
@@ -195,66 +210,247 @@ namespace skneuro{
         typedef vigra::MultiArrayView<4, T>  FeatureVolume;
         typedef vigra::MultiArrayView<3, L>  LabelVolume;
 
-        typedef vigra::TinyVector<int, 4> FeatureVolumeIndex;
+        typedef vigra::TinyVector<int, 4> FIndex;
 
-        struct Param{
-            FeatureVolumeIndex splitFeature;
+        typedef vigra::TinyVector<int, 3> PIndex;
+        typedef std::pair<PIndex,PIndex> PIndexPair;
+        typedef std::vector<PIndexPair>  EvalDimVec;
+
+
+        struct Parameter{
+            Parameter(){
+                patchRadius_ = 3;
+                mtry_ = 0;
+                nEvalDims_ = 100;
+            }
+            size_t patchRadius_;
+            size_t mtry_;
+            size_t nEvalDims_;
+        };
+
+
+        struct SplitInfo{
+            FIndex splitFeature;
             T featureVal;
         };
 
         PatchSplitFinder(
             FeatureVolume & features,
-            LabelVolume & labels
+            LabelVolume & labels,
+            const Parameter & param 
         )
         :   features_(features),
             labels_(labels),
-            randgen_()
+            param_(param),
+            randgen_(),
+            evalDims_(param.nEvalDims_),
+            distA_(vigra::TinyVector<int,1>(param.nEvalDims_)),
+            distB_(vigra::TinyVector<int,1>(param.nEvalDims_))
         {
         }   
 
+        void randEvalDims(){
+            for(size_t i=0; i<evalDims_.size(); ++i){
+                evalDims_[i].first  = randPatchPoint();
+                evalDims_[i].second = randPatchPoint();
+                while( evalDims_[i].first==evalDims_[i].second)
+                    evalDims_[i].second = randPatchPoint();
+            }
+        }
+
+        PIndex randPatchPoint()const{
+            PIndex index;
+            for(size_t d=0; d<3; ++d){
+                index[d] = randgen_.uniformInt(param_.patchRadius_*2 +1)-param_.patchRadius_;
+            }
+            return index;
+        }
+        FIndex randFeature()const{
+            FIndex index;
+            for(size_t d=0; d<3; ++d){
+                index[d] = randgen_.uniformInt(param_.patchRadius_*2 +1)-param_.patchRadius_;
+            }
+            index[3] = randgen_.uniformInt(features_.shape(3));
+            return index;
+        }
+        
+        template<class INSTANCE>
+        void fillBuffer(
+            const std::vector<INSTANCE> & instIn,
+            const FIndex fIndex,
+            std::vector<T> & buffer
+        ){
+            for(size_t i=0; i<instIn.size(); ++i){
+                FIndex tmp;
+                for(size_t d=0; d<3; ++d){
+                    tmp[d] = instIn[i][d] + fIndex[d];
+                }
+                tmp[3] = fIndex[3];
+                buffer[i] = features_[fIndex];
+            }
+        }
+
+        void resetIndices(std::vector<size_t> & indices)const{
+            for(size_t i=0; i<indices.size(); ++i){
+                indices[i] = i;
+            }
+        }
+
+
         // find a split
         template<class INSTANCE>
-        Param findSplit(
+        SplitInfo findSplit(
             const std::vector<INSTANCE> & instIn,
             std::vector<INSTANCE> & instOutA,
             std::vector<INSTANCE> & instOutB
-        ){
-            // reset
-            instOutA.resize(0);
-            instOutB.resize(0);
+        ){  
 
-            // dummy split
-            Param dummySplit;
-            
-            //dummySplit.splitFeature[i] =0;
 
-            INSTANCE randInst = instIn[randgen_.uniformInt(instIn.size())];
-            FeatureVolumeIndex tmp;
-            for(int i=0; i<3; ++i){
-                tmp[i] = randInst[i];
-            }
-            tmp[3] = 0;
-            dummySplit.featureVal = features_[tmp];
-            for(size_t i=0; i < instIn.size(); ++i){
-                for(size_t d=0; d<3; ++d){
-                    tmp[d] = instIn[i][d];
+            const size_t nInstances = instIn.size();
+
+            // eval dims
+            randEvalDims();
+
+            SKNEURO_CHECK_OP(nInstances, >=, 2, "error, to few instances for split");
+
+            double bestSplitValue = std::numeric_limits<double>::infinity();
+            FIndex bestFeatureIndex = FIndex(0);
+            T bestThreshold = T();
+
+
+            std::vector<float>          featureBuffer(instIn.size());
+            std::vector<size_t>         sortedIndices(instIn.size());
+            std::vector<vigra::UInt8>   splitOutput(instIn.size(),1);
+
+            for(size_t  tryNr=0; tryNr</*param_.mtry_*/ 1; ++tryNr){
+
+                // select a random feature index
+                FIndex rFeatureIndex = randFeature();
+
+                // fill buffer for that feature
+                fillBuffer(instIn, rFeatureIndex, featureBuffer);
+
+                // reset indices and get sorted indices
+                resetIndices(sortedIndices);
+                vigra::indexSort(featureBuffer.begin(),featureBuffer.end(), sortedIndices.begin());
+
+                // smallest goes to left (0)
+                // largest goes to right (1)
+                // - in between we try out 
+                //   all splits
+                splitOutput[sortedIndices[0]] = 0;
+                splitOutput[sortedIndices[nInstances-1]] = 1;
+
+                // try out all the splits
+                for(size_t i=1; i<nInstances-1; ++i){
+
+                    // set split output according to threshold
+                    const T thisThreshold = featureBuffer[sortedIndices[i]];
+                    splitOutput[i] = 0;
+                    if(i%100==0)
+                        evalSplit(instIn, splitOutput);
                 }
-                if(features_[tmp]<dummySplit.featureVal){
-                    instOutA.push_back(instIn[i]);
+            }
+
+          
+        }
+
+        template<class INSTANCE>
+        double evalSplit(
+            const std::vector<INSTANCE>     & instIn,
+            const std::vector<vigra::UInt8> & partition
+        ){
+            distA_  = 0.0;
+            distB_  = 0.0;
+
+            for(size_t i=0; i<instIn.size(); ++i){
+                const vigra::UInt8 label = partition[i];
+                // loop over all dimensions
+                for(size_t d=0; d<evalDims_.size(); ++d){
+                    const bool inSameCluster = labels_[instIn[i] + evalDims_[d].first] == labels_[instIn[i] + evalDims_[d].second];
+                    if(!inSameCluster){
+                        if(label==0)
+                            distA_(d)+=1.0;
+                        else
+                            distB_(d)+=1.0;
+                    }
+                }
+            }
+
+            double distBetween = 0.0;
+            distA_/=instIn.size();
+            distB_/=instIn.size();
+
+            // compute between distance
+            for(size_t d=0; d<evalDims_.size(); ++d){
+                const double dist = distA_[d]-distB_[d];
+                distBetween += dist*dist;
+            }
+            distBetween = std::sqrt(distBetween);
+       
+            size_t cA = 0;
+            size_t cB = 0;
+            double dAT = 0.0;
+            double dBT = 0.0;
+            // within dist
+            for(size_t i=0; i<instIn.size(); ++i){
+
+                double dA = 0.0;
+                double dB = 0.0;
+
+                const vigra::UInt8 label = partition[i];
+                // loop over all dimensions
+                if(label==0){
+                    ++cA;
                 }
                 else{
-                    instOutB.push_back(instIn[i]);
+                    ++cB;
                 }
+
+                for(size_t d=0; d<evalDims_.size(); ++d){
+                    const bool inSameCluster = labels_[instIn[i] + evalDims_[d].first] == labels_[instIn[i] + evalDims_[d].second];
+                    const double val  = inSameCluster ? 0.0 : 1.0;
+
+                    //std::cout<<"val "<<val<<"\n";
+
+                    if(label == 0 ){
+                        const double dist = val - distA_[d];
+                        dA  += dist*dist;
+                    }
+                    else{
+                        const double dist = val - distB_[d];
+                        dB  += dist*dist;
+                    }
+                }
+                dA = std::sqrt(dA);
+                dB = std::sqrt(dB);
+
+                //std::cout<<"DA "<<dA<<" DB "<<dB<<"\n";
+
+                dAT+=dA;
+                dBT+=dB;
             }
-            return dummySplit;
+
+
+            const double withinDist = (dAT+dBT)/instIn.size();
+            //std::cout<<"within dist "<<withinDist<<"\n";
+            const double totalDist  = withinDist/distBetween;
+            std::cout<<"total dist "<<totalDist<<"\n";
+
         }
+
 
 
     private:
 
         FeatureVolume features_;
         LabelVolume labels_;
+        Parameter param_;
         vigra::RandomNumberGenerator<> randgen_;
+        EvalDimVec evalDims_;
+
+        vigra::MultiArray<1,double> distA_;
+        vigra::MultiArray<1,double> distB_;
     };
 
 
@@ -270,9 +466,10 @@ namespace skneuro{
         typedef PatchRfParam Param;
         typedef lemon::ListDigraph Topology;
         typedef PatchSplitFinder<T,L> SplitFinder;
-        typedef typename SplitFinder::Param SplitParam;
+        typedef typename SplitFinder::Parameter SplitFinderParameter;
+        typedef typename SplitFinder::SplitInfo SplitInfo;
 
-        typedef Topology:: template NodeMap<SplitParam> SplitParamMap;
+        typedef Topology:: template NodeMap<SplitInfo> SplitInfoMap;
         typedef std::map<typename Topology::Node, InstanceVector> LeafNodeMap;
         PatchRf(const Param & param)
         :   param_(param){
@@ -290,15 +487,22 @@ namespace skneuro{
 
             // encode the topology of the graph
             Topology topology;
-            SplitParamMap splitParamMap(topology);
+            SplitInfoMap splitInfoMap(topology);
 
             // result of tree
             LeafNodeMap leafNodeMap;
 
-            SplitFinder splitFinder(features, labels);
+            SplitFinderParameter splitFinderParam;
+
+            splitFinderParam.patchRadius_ = param_.patchRadius;
+            splitFinderParam.mtry_ = static_cast<size_t>(std::sqrt(std::pow(3.0*2.0+1.0, 3)*features.shape(3))+ 0.5);
+
+            std::cout<<"mtry "<< splitFinderParam.mtry_ <<"\n";
+
+            SplitFinder splitFinder(features, labels, splitFinderParam);
 
             trainTree(instances.begin(), instances.end(), 
-                      splitFinder, topology, splitParamMap,
+                      splitFinder, topology, splitInfoMap,
                       leafNodeMap);
 
 

@@ -90,7 +90,30 @@ namespace skneuro{
             }
         }
     }
+    
 
+
+    template<class INSTANCE, class RG>
+    void getBootstrap(
+        const std::vector<INSTANCE> & instInAll,
+        std::vector<INSTANCE> & instBootstrap,
+        size_t btSize,
+        RG & rg
+    ){
+        const size_t nTotal = instInAll.size();  
+        std::vector<bool> isIncluded(nTotal, false);
+        for(size_t i=0; i<btSize; ++i){
+            isIncluded[rg.uniformInt(nTotal)] = true;
+        }
+        instBootstrap.resize(0);
+        instBootstrap.reserve(btSize);
+        for(size_t i=0; i<nTotal; ++i){
+            if(isIncluded[i]){
+                instBootstrap.push_back(instInAll[i]);
+            }
+        }
+
+    }
 
 
     struct RfTopologyParam{
@@ -167,7 +190,7 @@ namespace skneuro{
 
             splitInfoMap[topoNode] = splitFinder.findSplit(instIn, outA, outB);
 
-            std::cout<<outA.size()<<" "<<outB.size()<<"\n";
+            std::cout<<"out sizes"<<outA.size()<<" "<<outB.size()<<"\n";
             if(outA.size()>=2 && outB.size()>=2){
 
 
@@ -217,21 +240,25 @@ namespace skneuro{
         typedef std::vector<PIndexPair>  EvalDimVec;
 
 
+        typedef vigra::MultiArray<2, unsigned char> ExplicitLabels;
+
         struct Parameter{
             Parameter(){
-                patchRadius_ = 3;
+                patchRadius_ = 7;
                 mtry_ = 0;
                 nEvalDims_ = 100;
+                maxWeakLearnerExamples_ = 100000;
             }
             size_t patchRadius_;
             size_t mtry_;
             size_t nEvalDims_;
+            size_t maxWeakLearnerExamples_;
         };
 
 
         struct SplitInfo{
             FIndex splitFeature;
-            T featureVal;
+            T featureValThreshold;
         };
 
         PatchSplitFinder(
@@ -286,7 +313,8 @@ namespace skneuro{
                     tmp[d] = instIn[i][d] + fIndex[d];
                 }
                 tmp[3] = fIndex[3];
-                buffer[i] = features_[fIndex];
+                buffer[i] = features_[tmp];
+                //std::cout<<"buffer "<<buffer[i]<<"\n";
             }
         }
 
@@ -296,36 +324,72 @@ namespace skneuro{
             }
         }
 
+        template<class INSTANCE>
+        void makeExplicitLabels(
+            const std::vector<INSTANCE> & instIn
+        ){
+            vigra::TinyVector<int, 2> shape(instIn.size(), param_.nEvalDims_);
+            explicitLables_.reshape(shape);
+
+            for(size_t i=0; i<instIn.size(); ++i){
+                // loop over all dimensions
+                for(size_t d=0; d<evalDims_.size(); ++d){
+                    const bool inSameCluster = labels_[instIn[i] + evalDims_[d].first] == labels_[instIn[i] + evalDims_[d].second];
+                    explicitLables_(i, d) = static_cast<unsigned char>(inSameCluster);
+                }
+            }
+
+        }
 
         // find a split
         template<class INSTANCE>
         SplitInfo findSplit(
-            const std::vector<INSTANCE> & instIn,
+            const std::vector<INSTANCE> & instInAll,
             std::vector<INSTANCE> & instOutA,
             std::vector<INSTANCE> & instOutB
         ){  
+            const size_t nTotal = instInAll.size();
+            SKNEURO_CHECK_OP(nTotal, >=, 2, "error, to few instances for split");
 
+            std::vector<INSTANCE> instInBt;
+            if(nTotal> param_.maxWeakLearnerExamples_){
+                getBootstrap(instInAll, instInBt, param_.maxWeakLearnerExamples_, randgen_);
+            }
 
+            const std::vector<INSTANCE> & instIn = nTotal> param_.maxWeakLearnerExamples_ ? 
+                                                    instInBt : instInAll;
             const size_t nInstances = instIn.size();
+
+            //std::cout<<"  bootstrap"<<nInstances<<"  "<<nTotal<<"\n";
+
+            SKNEURO_CHECK_OP(nInstances, >=, 2, "error, to few instances for split");
 
             // eval dims
             randEvalDims();
 
-            SKNEURO_CHECK_OP(nInstances, >=, 2, "error, to few instances for split");
+            
+            // make labeling explicit
+            makeExplicitLabels(instIn);
 
-            double bestSplitValue = std::numeric_limits<double>::infinity();
-            FIndex bestFeatureIndex = FIndex(0);
-            T bestThreshold = T();
+            double bestEvalVal = std::numeric_limits<double>::infinity();
+            SplitInfo splitInfo;
 
 
             std::vector<float>          featureBuffer(instIn.size());
             std::vector<size_t>         sortedIndices(instIn.size());
             std::vector<vigra::UInt8>   splitOutput(instIn.size(),1);
+            bool foundPerfekt = false;
 
-            for(size_t  tryNr=0; tryNr</*param_.mtry_*/ 1; ++tryNr){
 
+            for(size_t  tryNr=0; tryNr<param_.mtry_ && !foundPerfekt; ++tryNr){
+                std::cout<<"   try "<<tryNr<<"\n";
                 // select a random feature index
                 FIndex rFeatureIndex = randFeature();
+                std::cout<<"randFetures : ";
+                for(size_t ff=0; ff<4; ++ff){
+                    std::cout<<rFeatureIndex[ff]<<" ";
+                }
+                std::cout<<"\n";
 
                 // fill buffer for that feature
                 fillBuffer(instIn, rFeatureIndex, featureBuffer);
@@ -334,25 +398,66 @@ namespace skneuro{
                 resetIndices(sortedIndices);
                 vigra::indexSort(featureBuffer.begin(),featureBuffer.end(), sortedIndices.begin());
 
+
+
                 // smallest goes to left (0)
                 // largest goes to right (1)
                 // - in between we try out 
                 //   all splits
+                std::fill(splitOutput.begin(), splitOutput.end(), 1);
                 splitOutput[sortedIndices[0]] = 0;
                 splitOutput[sortedIndices[nInstances-1]] = 1;
 
+                T lastThreshold = T();
+                bool hasLast = false;
                 // try out all the splits
+                //std::cout<<"\n";
                 for(size_t i=1; i<nInstances-1; ++i){
-
+                    //if(i%20==0)
+                    //    std::cout<<"i"<<std::setw(10)<<i<<"\r"<<std::flush;
                     // set split output according to threshold
-                    const T thisThreshold = featureBuffer[sortedIndices[i]];
-                    splitOutput[i] = 0;
-                    if(i%100==0)
-                        evalSplit(instIn, splitOutput);
+                    T thisThreshold = featureBuffer[sortedIndices[i]];
+                    splitOutput[sortedIndices[i]] = 0;
+                    //std::cout<<"this  "<<thisThreshold <<"last "<<lastThreshold<<"\n";
+                    if(hasLast && std::abs(lastThreshold-thisThreshold)<0.000001){
+                        //std::cout<<"continue\n";
+                        continue;
+                    }
+                    hasLast = true;
+                    const double evalVal = evalSplit(instIn, splitOutput);
+                    lastThreshold = thisThreshold;
+                    // is this the current best split
+                    if(evalVal<bestEvalVal){
+                        //std::cout<<"improving "<< evalVal << " -- "<<bestEvalVal<<"\n";
+                        splitInfo.splitFeature = rFeatureIndex;
+                        splitInfo.featureValThreshold = thisThreshold;
+                        bestEvalVal  = evalVal;
+                    }
+                    // is this the global best split
+                    if(evalVal<=0.00001){
+                        //std::cout<<"best poissible "<< evalVal <<"\n";
+                        foundPerfekt = true;
+                        break;
+                    }
                 }
+                std::cout<<" VAR "<<std::setprecision(12)<<bestEvalVal<<"\n";
             }
 
-          
+            featureBuffer.resize(nTotal);
+            
+            
+
+            // realize split
+            fillBuffer(instInAll, splitInfo.splitFeature, featureBuffer);
+            for(size_t i=0; i<instInAll.size(); ++i){
+                if(featureBuffer[i]<=splitInfo.featureValThreshold){
+                    instOutA.push_back(instInAll[i]);
+                }
+                else{
+                    instOutB.push_back(instInAll[i]);
+                }
+            }
+            return splitInfo;
         }
 
         template<class INSTANCE>
@@ -362,81 +467,48 @@ namespace skneuro{
         ){
             distA_  = 0.0;
             distB_  = 0.0;
-
+            size_t ca = 0;
+            size_t cb = 0;
             for(size_t i=0; i<instIn.size(); ++i){
                 const vigra::UInt8 label = partition[i];
                 // loop over all dimensions
                 for(size_t d=0; d<evalDims_.size(); ++d){
-                    const bool inSameCluster = labels_[instIn[i] + evalDims_[d].first] == labels_[instIn[i] + evalDims_[d].second];
-                    if(!inSameCluster){
-                        if(label==0)
-                            distA_(d)+=1.0;
-                        else
-                            distB_(d)+=1.0;
+                    if(label==0){
+                        ++ca;
+                        distA_(d)+=explicitLables_(i, d);
+                    }
+                    else{
+                        ++cb;
+                        distB_(d)+=explicitLables_(i, d);
                     }
                 }
             }
-
-            double distBetween = 0.0;
-            distA_/=instIn.size();
-            distB_/=instIn.size();
-
-            // compute between distance
-            for(size_t d=0; d<evalDims_.size(); ++d){
-                const double dist = distA_[d]-distB_[d];
-                distBetween += dist*dist;
-            }
-            distBetween = std::sqrt(distBetween);
-       
-            size_t cA = 0;
-            size_t cB = 0;
+            distA_/=ca;
+            distB_/=cb;
             double dAT = 0.0;
             double dBT = 0.0;
+
             // within dist
             for(size_t i=0; i<instIn.size(); ++i){
-
                 double dA = 0.0;
                 double dB = 0.0;
-
                 const vigra::UInt8 label = partition[i];
-                // loop over all dimensions
-                if(label==0){
-                    ++cA;
-                }
-                else{
-                    ++cB;
-                }
-
                 for(size_t d=0; d<evalDims_.size(); ++d){
-                    const bool inSameCluster = labels_[instIn[i] + evalDims_[d].first] == labels_[instIn[i] + evalDims_[d].second];
-                    const double val  = inSameCluster ? 0.0 : 1.0;
-
-                    //std::cout<<"val "<<val<<"\n";
-
                     if(label == 0 ){
-                        const double dist = val - distA_[d];
+                        const double dist = explicitLables_(i, d)-distA_[d];
                         dA  += dist*dist;
                     }
                     else{
-                        const double dist = val - distB_[d];
+                        const double dist = explicitLables_(i, d)-distB_[d];
                         dB  += dist*dist;
                     }
                 }
-                dA = std::sqrt(dA);
-                dB = std::sqrt(dB);
-
-                //std::cout<<"DA "<<dA<<" DB "<<dB<<"\n";
-
-                dAT+=dA;
-                dBT+=dB;
+                dAT+=std::sqrt(dA);
+                dBT+=std::sqrt(dB);
             }
-
-
             const double withinDist = (dAT+dBT)/instIn.size();
-            //std::cout<<"within dist "<<withinDist<<"\n";
-            const double totalDist  = withinDist/distBetween;
-            std::cout<<"total dist "<<totalDist<<"\n";
-
+            //std::cout<<"withinDist "<<withinDist<<"\n";
+            return withinDist;
         }
 
 
@@ -451,6 +523,8 @@ namespace skneuro{
 
         vigra::MultiArray<1,double> distA_;
         vigra::MultiArray<1,double> distB_;
+
+        ExplicitLabels explicitLables_;
     };
 
 
@@ -501,7 +575,14 @@ namespace skneuro{
 
             SplitFinder splitFinder(features, labels, splitFinderParam);
 
-            trainTree(instances.begin(), instances.end(), 
+            // get the bootstrap
+            InstanceVector bootstrapInstances;
+            vigra::RandomNumberGenerator<> randgen_;
+            getBootstrap(instances,bootstrapInstances,instances.size(), randgen_ );
+
+            std::cout<<"BTSIZE "<< bootstrapInstances.size()<<"  "<<instances.size()<<"\n";
+
+            trainTree(bootstrapInstances.begin(), bootstrapInstances.end(), 
                       splitFinder, topology, splitInfoMap,
                       leafNodeMap);
 

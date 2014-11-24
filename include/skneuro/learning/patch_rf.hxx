@@ -6,10 +6,15 @@
 #include <queue>
 #include <vector>
 #include <algorithm>
+
+// vigra
 #include <vigra/random.hxx>
 #include <lemon/list_graph.h>
 #include <vigra/algorithm.hxx>
 
+
+// skeuro
+#include "split_finder.hxx"
 namespace skneuro{
     
 
@@ -246,10 +251,10 @@ namespace skneuro{
             Parameter(){
                 patchRadius_ = 7;
                 mtry_ = 0;
-                nEvalDims_ = 100;
-                maxWeakLearnerExamples_ = 100000;
+                nEvalDims_ = 1000;
+                maxWeakLearnerExamples_ = 250000;
             }
-            size_t patchRadius_;
+            int patchRadius_;
             size_t mtry_;
             size_t nEvalDims_;
             size_t maxWeakLearnerExamples_;
@@ -270,9 +275,7 @@ namespace skneuro{
             labels_(labels),
             param_(param),
             randgen_(),
-            evalDims_(param.nEvalDims_),
-            distA_(vigra::TinyVector<int,1>(param.nEvalDims_)),
-            distB_(vigra::TinyVector<int,1>(param.nEvalDims_))
+            evalDims_(param.nEvalDims_)
         {
         }   
 
@@ -280,8 +283,9 @@ namespace skneuro{
             for(size_t i=0; i<evalDims_.size(); ++i){
                 evalDims_[i].first  = randPatchPoint();
                 evalDims_[i].second = randPatchPoint();
-                while( evalDims_[i].first==evalDims_[i].second)
+                while( evalDims_[i].first==evalDims_[i].second){
                     evalDims_[i].second = randPatchPoint();
+                }
             }
         }
 
@@ -289,6 +293,8 @@ namespace skneuro{
             PIndex index;
             for(size_t d=0; d<3; ++d){
                 index[d] = randgen_.uniformInt(param_.patchRadius_*2 +1)-param_.patchRadius_;
+                SKNEURO_CHECK_OP(index[d],<=,param_.patchRadius_,"");
+                SKNEURO_CHECK_OP(index[d],>=,-1*param_.patchRadius_,"");
             }
             return index;
         }
@@ -296,6 +302,8 @@ namespace skneuro{
             FIndex index;
             for(size_t d=0; d<3; ++d){
                 index[d] = randgen_.uniformInt(param_.patchRadius_*2 +1)-param_.patchRadius_;
+                SKNEURO_CHECK_OP(index[d],<=,param_.patchRadius_,"");
+                SKNEURO_CHECK_OP(index[d],>=,-1*param_.patchRadius_,"");
             }
             index[3] = randgen_.uniformInt(features_.shape(3));
             return index;
@@ -328,14 +336,14 @@ namespace skneuro{
         void makeExplicitLabels(
             const std::vector<INSTANCE> & instIn
         ){
-            vigra::TinyVector<int, 2> shape(instIn.size(), param_.nEvalDims_);
+            vigra::TinyVector<int, 2> shape(param_.nEvalDims_, instIn.size());
             explicitLables_.reshape(shape);
 
             for(size_t i=0; i<instIn.size(); ++i){
                 // loop over all dimensions
                 for(size_t d=0; d<evalDims_.size(); ++d){
                     const bool inSameCluster = labels_[instIn[i] + evalDims_[d].first] == labels_[instIn[i] + evalDims_[d].second];
-                    explicitLables_(i, d) = static_cast<unsigned char>(inSameCluster);
+                    explicitLables_(d, i) = static_cast<unsigned char>(inSameCluster);
                 }
             }
 
@@ -348,6 +356,7 @@ namespace skneuro{
             std::vector<INSTANCE> & instOutA,
             std::vector<INSTANCE> & instOutB
         ){  
+            std::cout<<"find split:\n";
             const size_t nTotal = instInAll.size();
             SKNEURO_CHECK_OP(nTotal, >=, 2, "error, to few instances for split");
 
@@ -371,6 +380,8 @@ namespace skneuro{
             // make labeling explicit
             makeExplicitLabels(instIn);
 
+
+
             double bestEvalVal = std::numeric_limits<double>::infinity();
             SplitInfo splitInfo;
 
@@ -381,66 +392,30 @@ namespace skneuro{
             bool foundPerfekt = false;
 
 
+            typedef VarianceRediction<T, vigra::UInt8> VarRed;
+            VarRed varReducer(explicitLables_);
+
             for(size_t  tryNr=0; tryNr<param_.mtry_ && !foundPerfekt; ++tryNr){
-                std::cout<<"   try "<<tryNr<<"\n";
+                //std::cout<<"   try "<<tryNr<<"\n";
                 // select a random feature index
                 FIndex rFeatureIndex = randFeature();
-                std::cout<<"randFetures : ";
-                for(size_t ff=0; ff<4; ++ff){
-                    std::cout<<rFeatureIndex[ff]<<" ";
-                }
-                std::cout<<"\n";
+                //std::cout<<"randFetures : ";
+               // /for(size_t ff=0; ff<4; ++ff){
+               // /    std::cout<<rFeatureIndex[ff]<<" ";
+               // /}
+               // /std::cout<<"\n";
 
                 // fill buffer for that feature
                 fillBuffer(instIn, rFeatureIndex, featureBuffer);
 
-                // reset indices and get sorted indices
-                resetIndices(sortedIndices);
-                vigra::indexSort(featureBuffer.begin(),featureBuffer.end(), sortedIndices.begin());
-
-
-
-                // smallest goes to left (0)
-                // largest goes to right (1)
-                // - in between we try out 
-                //   all splits
-                std::fill(splitOutput.begin(), splitOutput.end(), 1);
-                splitOutput[sortedIndices[0]] = 0;
-                splitOutput[sortedIndices[nInstances-1]] = 1;
-
-                T lastThreshold = T();
-                bool hasLast = false;
-                // try out all the splits
-                //std::cout<<"\n";
-                for(size_t i=1; i<nInstances-1; ++i){
-                    //if(i%20==0)
-                    //    std::cout<<"i"<<std::setw(10)<<i<<"\r"<<std::flush;
-                    // set split output according to threshold
-                    T thisThreshold = featureBuffer[sortedIndices[i]];
-                    splitOutput[sortedIndices[i]] = 0;
-                    //std::cout<<"this  "<<thisThreshold <<"last "<<lastThreshold<<"\n";
-                    if(hasLast && std::abs(lastThreshold-thisThreshold)<0.000001){
-                        //std::cout<<"continue\n";
-                        continue;
-                    }
-                    hasLast = true;
-                    const double evalVal = evalSplit(instIn, splitOutput);
-                    lastThreshold = thisThreshold;
-                    // is this the current best split
-                    if(evalVal<bestEvalVal){
-                        //std::cout<<"improving "<< evalVal << " -- "<<bestEvalVal<<"\n";
-                        splitInfo.splitFeature = rFeatureIndex;
-                        splitInfo.featureValThreshold = thisThreshold;
-                        bestEvalVal  = evalVal;
-                    }
-                    // is this the global best split
-                    if(evalVal<=0.00001){
-                        //std::cout<<"best poissible "<< evalVal <<"\n";
-                        foundPerfekt = true;
-                        break;
-                    }
+                
+                std::pair<T, double> res = varReducer.bestSplit(featureBuffer);
+                if(res.second < bestEvalVal){
+                    std::cout<<" varbest "<<std::setprecision(10)<<res.second <<"\n";
+                    bestEvalVal = res.second;
+                    splitInfo.splitFeature = rFeatureIndex;
+                    splitInfo.featureValThreshold = res.first;
                 }
-                std::cout<<" VAR "<<std::setprecision(12)<<bestEvalVal<<"\n";
             }
 
             featureBuffer.resize(nTotal);
@@ -458,57 +433,6 @@ namespace skneuro{
                 }
             }
             return splitInfo;
-        }
-
-        template<class INSTANCE>
-        double evalSplit(
-            const std::vector<INSTANCE>     & instIn,
-            const std::vector<vigra::UInt8> & partition
-        ){
-            distA_  = 0.0;
-            distB_  = 0.0;
-            size_t ca = 0;
-            size_t cb = 0;
-            for(size_t i=0; i<instIn.size(); ++i){
-                const vigra::UInt8 label = partition[i];
-                // loop over all dimensions
-                for(size_t d=0; d<evalDims_.size(); ++d){
-                    if(label==0){
-                        ++ca;
-                        distA_(d)+=explicitLables_(i, d);
-                    }
-                    else{
-                        ++cb;
-                        distB_(d)+=explicitLables_(i, d);
-                    }
-                }
-            }
-            distA_/=ca;
-            distB_/=cb;
-            double dAT = 0.0;
-            double dBT = 0.0;
-
-            // within dist
-            for(size_t i=0; i<instIn.size(); ++i){
-                double dA = 0.0;
-                double dB = 0.0;
-                const vigra::UInt8 label = partition[i];
-                for(size_t d=0; d<evalDims_.size(); ++d){
-                    if(label == 0 ){
-                        const double dist = explicitLables_(i, d)-distA_[d];
-                        dA  += dist*dist;
-                    }
-                    else{
-                        const double dist = explicitLables_(i, d)-distB_[d];
-                        dB  += dist*dist;
-                    }
-                }
-                dAT+=std::sqrt(dA);
-                dBT+=std::sqrt(dB);
-            }
-            const double withinDist = (dAT+dBT)/instIn.size();
-            //std::cout<<"withinDist "<<withinDist<<"\n";
-            return withinDist;
         }
 
 

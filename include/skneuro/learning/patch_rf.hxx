@@ -251,8 +251,8 @@ namespace skneuro{
             Parameter(){
                 patchRadius_ = 7;
                 mtry_ = 0;
-                nEvalDims_ = 1000;
-                maxWeakLearnerExamples_ = 250000;
+                nEvalDims_ = 1;
+                maxWeakLearnerExamples_ = 2500;
             }
             int patchRadius_;
             size_t mtry_;

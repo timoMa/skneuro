@@ -13,7 +13,10 @@
 #include <vigra/algorithm.hxx>
 
 
+
 // skeuro
+#include <skneuro/clustering/mini_batch_kmeans.hxx>
+
 #include "split_finder.hxx"
 namespace skneuro{
     
@@ -21,7 +24,7 @@ namespace skneuro{
     template<class L>
     void findValids(
         const vigra::MultiArrayView<3, L> & labels,
-        std::vector< vigra::TinyVector< vigra::UInt16, 3> >  & coords,
+        std::vector< vigra::TinyVector< vigra::Int64, 3> >  & coords,
         const int r
     ){
         vigra::MultiArray<3, bool>  isValid(labels.shape(), false);
@@ -249,15 +252,17 @@ namespace skneuro{
 
         struct Parameter{
             Parameter(){
-                patchRadius_ = 7;
+                patchRadius_ = 5;
                 mtry_ = 0;
-                nEvalDims_ = 1;
-                maxWeakLearnerExamples_ = 2500;
+                nEvalDims_ = 100;
+                maxWeakLearnerExamples_ = 1000000;
+                labelClusters_ = 4;
             }
             int patchRadius_;
             size_t mtry_;
             size_t nEvalDims_;
             size_t maxWeakLearnerExamples_;
+            size_t labelClusters_;
         };
 
 
@@ -349,6 +354,28 @@ namespace skneuro{
 
         }
 
+        void cluster_Z_Labels(){
+            
+
+            vigra::TinyVector<int, 1> shape(explicitLables_.shape(1));
+            flatLabels_.reshape(shape);
+
+
+            typedef MiniBatchKMeans<vigra::UInt8, vigra::UInt8> KMeans;
+            typedef typename KMeans::Parameter KMeansParam;
+
+            KMeansParam kMeansParam;
+            kMeansParam.numberOfCluters_ = param_.labelClusters_;
+
+            KMeans kMeans(kMeansParam);
+
+            kMeans.fit(explicitLables_);
+            vigra::metrics::SquaredNorm<double> metric;
+            std::cout<<"find Nearest\n";
+            findNearest(explicitLables_, kMeans.centers(), metric, flatLabels_);
+            std::cout<<"find NearestDone\n";
+        }
+
         // find a split
         template<class INSTANCE>
         SplitInfo findSplit(
@@ -380,6 +407,8 @@ namespace skneuro{
             // make labeling explicit
             makeExplicitLabels(instIn);
 
+            // do k means clustering
+            cluster_Z_Labels();
 
 
             double bestEvalVal = std::numeric_limits<double>::infinity();
@@ -392,8 +421,8 @@ namespace skneuro{
             bool foundPerfekt = false;
 
 
-            typedef VarianceRediction<T, vigra::UInt8> VarRed;
-            VarRed varReducer(explicitLables_);
+            typedef GiniImpurity<T, vigra::UInt64> Evaluator;
+            Evaluator evaluator(param_.labelClusters_, flatLabels_);
 
             for(size_t  tryNr=0; tryNr<param_.mtry_ && !foundPerfekt; ++tryNr){
                 //std::cout<<"   try "<<tryNr<<"\n";
@@ -408,13 +437,17 @@ namespace skneuro{
                 // fill buffer for that feature
                 fillBuffer(instIn, rFeatureIndex, featureBuffer);
 
-                
-                std::pair<T, double> res = varReducer.bestSplit(featureBuffer);
+                //std::cout<<"eval split\n";
+                std::pair<T, double> res = evaluator.bestSplit(featureBuffer);
+
                 if(res.second < bestEvalVal){
                     std::cout<<" varbest "<<std::setprecision(10)<<res.second <<"\n";
                     bestEvalVal = res.second;
                     splitInfo.splitFeature = rFeatureIndex;
                     splitInfo.featureValThreshold = res.first;
+                }
+                else{
+                    //std::cout<<" var cur "<<std::setprecision(10)<<res.second <<"\n";
                 }
             }
 
@@ -449,6 +482,7 @@ namespace skneuro{
         vigra::MultiArray<1,double> distB_;
 
         ExplicitLabels explicitLables_;
+        vigra::MultiArray<1, size_t> flatLabels_;
     };
 
 
@@ -456,7 +490,7 @@ namespace skneuro{
     class PatchRf{
     public:
 
-        typedef vigra::TinyVector< vigra::UInt16, 3> Instance;
+        typedef vigra::TinyVector< vigra::Int64, 3> Instance;
         typedef std::vector<Instance> InstanceVector;
         typedef vigra::MultiArrayView<4, T>  FeatureVolume;
         typedef vigra::MultiArrayView<3, L>  LabelVolume;

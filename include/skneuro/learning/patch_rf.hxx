@@ -16,8 +16,113 @@
 
 // skeuro
 #include <skneuro/clustering/mini_batch_kmeans.hxx>
-
 #include "split_finder.hxx"
+
+
+
+template<unsigned int DIM>
+class PatchPointSampler{
+public:
+    PatchPointSampler(){
+
+    }   
+
+    template<class DIM>
+    vigra::TinyVector<int, DIM> 
+    randPatchPoint(const double sigma, 
+                   const size_t maxRadius
+    ){
+        vigra::TinyVector<int, DIM> res;
+        for(size_t d=0; d<DIM; ++d){
+            const double randCoord = randgen_.normal(0.0, sigma);
+            res[d] = std::round(randCoord);
+            res[d] = std::max(red[d], -1*maxRadius_);
+            res[d] = std::min(red[d],    maxRadius_);
+        }
+        return res;
+    }
+
+    template<class DIM>
+    std::pair<vigra::TinyVector<int, DIM> > 
+    randPatchPointPair(const double sigma1, 
+                       const double sigma2,
+                       const size_t maxRadius
+    ){
+        std::pair<vigra::TinyVector<int, DIM> > res;
+        res.first  = randPatchPoint(sigma1, maxRadius);
+        res.second = randPatchPoint(sigma2, maxRadius);
+        while(res.first == res.second)
+            res.second == randPatchPoint(sigma2, maxRadius);
+        return res;
+    }
+
+
+
+    template<class DIM>
+    std::vector < std::pair<vigra::TinyVector<int, DIM> > > 
+    randPatchPointPairVec(const double sigma1, 
+                          const double sigma2,
+                          const size_t maxRadius,
+                          const size_t nPairs
+    ){
+        typedef vigra::TinyVector<int, DIM> Point;
+        typedef vigra::TinyVector<int, 2*DIM> DoublePoint;
+        typedef std::pair<Point, Point> PointPair;
+        typedef std::vector<PointPair> PointPairVec;
+
+        std::vector < std::pair<vigra::TinyVector<int, DIM> > >  res(nPairs);
+
+        
+        std::set<DoublePoint> used;
+
+        for(size_t i=0; i<nPairs; ++i){
+            PointPair pp = randPatchPointPair(sigma1, sigma2, maxRadius);
+            // search for unique
+            while(used.find(makeDoublePoint(pp)) != used.end()){
+                pp = randPatchPointPair(sigma1, sigma2, maxRadius);
+            }
+            used.insert(makeDoublePoint(pp));
+            res[i] = pp;
+        }
+        return res;
+    }
+
+private:
+    template<class DIM>
+    vigra::TinyVector<int, 2*DIM>  makeDoublePoint(std::pair<vigra::TinyVector<int, DIM> > pp
+    ){
+        vigra::TinyVector<int, 2*DIM>  res;
+        for(size_t i=0; i<DIM; ++dim){
+            res[i] = pp.first[i]
+            res[i+DIM] = pp.second[i];
+        }
+        return res;
+    }
+    vigra::RandomNumberGenerator<> randgen_;
+};
+
+
+
+
+
+
+
+struct PatchSplitFinder{
+
+
+    void FindSplit(){
+    }
+
+
+    void getLabelFeatureSpace(){
+    }
+    void clusterLabels(){
+    }
+};
+
+
+
+
 namespace skneuro{
     
 
@@ -163,6 +268,9 @@ namespace skneuro{
         TOPOLOGY & topology, SPLIT_PARAM_MAP & splitInfoMap,
         LEAF_NODE_MAP & leafNodeMap
     ){
+
+        RfTopologyParam topoParam;
+
         typedef typename SPLIT_PARAM_MAP::Value SplitInfo;
         typedef typename std::iterator_traits<INSTANCE_ITER>::value_type InstanceDesc;
         typedef TOPOLOGY Topology;
@@ -199,10 +307,9 @@ namespace skneuro{
             splitInfoMap[topoNode] = splitFinder.findSplit(instIn, outA, outB);
 
             std::cout<<"out sizes"<<outA.size()<<" "<<outB.size()<<"\n";
-            if(outA.size()>=2 && outB.size()>=2){
-
-
-
+            if(outA.size()>=topoParam.minInstancesForSplit_ && 
+               outB.size()>=topoParam.minInstancesForSplit_)
+            {
                 // connect topology
                 inA.topoNode = topology.addNode();
                 inB.topoNode = topology.addNode();
@@ -214,13 +321,13 @@ namespace skneuro{
                 toSplitQ.push(inB);
             }
             else{
-                if(outA.size()>0){
+                if(outA.size()>=topoParam.minInstancesForSplit_){
                     inA.topoNode = topology.addNode();
                     topology.addArc(topoNode,inA.topoNode);
                     for(size_t i=0; i<outA.size(); ++i)
                         leafNodeMap[inA.topoNode].push_back(outA[i]);
                 }
-                if(outB.size()>0){
+                if(outB.size()>=topoParam.minInstancesForSplit_){
                     inB.topoNode = topology.addNode();
                     topology.addArc(topoNode,inB.topoNode);
                     for(size_t i=0; i<outB.size(); ++i)
@@ -228,7 +335,6 @@ namespace skneuro{
                 }
             }
         }
-
     }
 
     

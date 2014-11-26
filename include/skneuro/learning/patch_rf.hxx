@@ -17,216 +17,15 @@
 // skeuro
 #include <skneuro/clustering/mini_batch_kmeans.hxx>
 #include "split_finder.hxx"
+#include "patch_rf_utitilies.hxx"
 
 
-
-template<unsigned int DIM>
-class PatchPointSampler{
-public:
-    PatchPointSampler(){
-
-    }   
-
-    template<class DIM>
-    vigra::TinyVector<int, DIM> 
-    randPatchPoint(const double sigma, 
-                   const size_t maxRadius
-    ){
-        vigra::TinyVector<int, DIM> res;
-        for(size_t d=0; d<DIM; ++d){
-            const double randCoord = randgen_.normal(0.0, sigma);
-            res[d] = std::round(randCoord);
-            res[d] = std::max(red[d], -1*maxRadius_);
-            res[d] = std::min(red[d],    maxRadius_);
-        }
-        return res;
-    }
-
-    template<class DIM>
-    std::pair<vigra::TinyVector<int, DIM> > 
-    randPatchPointPair(const double sigma1, 
-                       const double sigma2,
-                       const size_t maxRadius
-    ){
-        std::pair<vigra::TinyVector<int, DIM> > res;
-        res.first  = randPatchPoint(sigma1, maxRadius);
-        res.second = randPatchPoint(sigma2, maxRadius);
-        while(res.first == res.second)
-            res.second == randPatchPoint(sigma2, maxRadius);
-        return res;
-    }
-
-
-
-    template<class DIM>
-    std::vector < std::pair<vigra::TinyVector<int, DIM> > > 
-    randPatchPointPairVec(const double sigma1, 
-                          const double sigma2,
-                          const size_t maxRadius,
-                          const size_t nPairs
-    ){
-        typedef vigra::TinyVector<int, DIM> Point;
-        typedef vigra::TinyVector<int, 2*DIM> DoublePoint;
-        typedef std::pair<Point, Point> PointPair;
-        typedef std::vector<PointPair> PointPairVec;
-
-        std::vector < std::pair<vigra::TinyVector<int, DIM> > >  res(nPairs);
-
-        
-        std::set<DoublePoint> used;
-
-        for(size_t i=0; i<nPairs; ++i){
-            PointPair pp = randPatchPointPair(sigma1, sigma2, maxRadius);
-            // search for unique
-            while(used.find(makeDoublePoint(pp)) != used.end()){
-                pp = randPatchPointPair(sigma1, sigma2, maxRadius);
-            }
-            used.insert(makeDoublePoint(pp));
-            res[i] = pp;
-        }
-        return res;
-    }
-
-private:
-    template<class DIM>
-    vigra::TinyVector<int, 2*DIM>  makeDoublePoint(std::pair<vigra::TinyVector<int, DIM> > pp
-    ){
-        vigra::TinyVector<int, 2*DIM>  res;
-        for(size_t i=0; i<DIM; ++dim){
-            res[i] = pp.first[i]
-            res[i+DIM] = pp.second[i];
-        }
-        return res;
-    }
-    vigra::RandomNumberGenerator<> randgen_;
-};
-
-
-
-
-
-
-
-struct PatchSplitFinder{
-
-
-    void FindSplit(){
-    }
-
-
-    void getLabelFeatureSpace(){
-    }
-    void clusterLabels(){
-    }
-};
 
 
 
 
 namespace skneuro{
     
-
-    template<class L>
-    void findValids(
-        const vigra::MultiArrayView<3, L> & labels,
-        std::vector< vigra::TinyVector< vigra::Int64, 3> >  & coords,
-        const int r
-    ){
-        vigra::MultiArray<3, bool>  isValid(labels.shape(), false);
-        vigra::MultiArray<3, bool>  isValid2(labels.shape(), false);
-
-        for(int z=r+1; z<labels.shape(2)-r-1; ++z)
-        for(int y=r+1; y<labels.shape(1)-r-1; ++y)
-        for(int x=r+1; x<labels.shape(0)-r-1; ++x){
-            isValid(x, y, z) = true;
-            isValid2(x, y, z) = true;
-        }
-
-
-        for(int z=0; z<labels.shape(2); ++z)
-        for(int y=0; y<labels.shape(1); ++y)
-        for(int x=0; x<labels.shape(0); ++x){
-            if(isValid(x,y,z) == false ){
-                for(int xx=-1*r; xx <= r; ++xx){
-                    int xxx = x+xx;
-                    if(xxx>=0 && xxx<labels.shape(0)){
-                        isValid2(xxx, y, z) = false;
-                    }
-                }
-            }
-        }
-        isValid = isValid2;
-        for(int z=0; z<labels.shape(2); ++z)
-        for(int y=0; y<labels.shape(1); ++y)
-        for(int x=0; x<labels.shape(0); ++x){
-            if(isValid(x,y,z) == false ){
-                for(int yy=-1*r; yy <= r; ++yy){
-                    int yyy = y+yy;
-                    if(yyy>=0 && yyy<labels.shape(1)){
-                        isValid2(x, yyy, z) = false;
-                    }
-                }
-            }
-        }
-        isValid = isValid2;
-        for(int z=0; z<labels.shape(2); ++z)
-        for(int y=0; y<labels.shape(1); ++y)
-        for(int x=0; x<labels.shape(0); ++x){
-            if(isValid(x,y,z) == false ){
-                for(int zz=-1*r; zz <= r; ++zz){
-                    int zzz = z+zz;
-                    if(zzz>=0 && zzz<labels.shape(2)){
-                        isValid2(x, y, zzz) = false;
-                    }
-                }
-            }
-        }
-        isValid = isValid2;
-        size_t counter = 0;
-        for(int z=0; z<labels.shape(2); ++z)
-        for(int y=0; y<labels.shape(1); ++y)
-        for(int x=0; x<labels.shape(0); ++x){
-            if(isValid(x,y,z) == true ){
-                ++counter;
-            }
-        }
-        coords.resize(counter);
-        counter=0;
-        for(int z=0; z<labels.shape(2); ++z)
-        for(int y=0; y<labels.shape(1); ++y)
-        for(int x=0; x<labels.shape(0); ++x){
-            if(isValid(x,y,z) == true ){
-                coords[counter][0] = x;
-                coords[counter][1] = y;
-                coords[counter][2] = z;
-                ++counter;
-            }
-        }
-    }
-    
-
-
-    template<class INSTANCE, class RG>
-    void getBootstrap(
-        const std::vector<INSTANCE> & instInAll,
-        std::vector<INSTANCE> & instBootstrap,
-        size_t btSize,
-        RG & rg
-    ){
-        const size_t nTotal = instInAll.size();  
-        std::vector<bool> isIncluded(nTotal, false);
-        for(size_t i=0; i<btSize; ++i){
-            isIncluded[rg.uniformInt(nTotal)] = true;
-        }
-        instBootstrap.resize(0);
-        instBootstrap.reserve(btSize);
-        for(size_t i=0; i<nTotal; ++i){
-            if(isIncluded[i]){
-                instBootstrap.push_back(instInAll[i]);
-            }
-        }
-
-    }
 
 
     struct RfTopologyParam{
@@ -361,14 +160,18 @@ namespace skneuro{
                 patchRadius_ = 5;
                 mtry_ = 0;
                 nEvalDims_ = 100;
-                maxWeakLearnerExamples_ = 1000000;
+                maxWeakLearnerExamples_ = 100000;
                 labelClusters_ = 4;
+                sigma1_ = 4.0 ;
+                sigma2_ = 6.0 ;
             }
             int patchRadius_;
             size_t mtry_;
             size_t nEvalDims_;
             size_t maxWeakLearnerExamples_;
             size_t labelClusters_;
+            double sigma1_;
+            double sigma2_;
         };
 
 
@@ -386,39 +189,20 @@ namespace skneuro{
             labels_(labels),
             param_(param),
             randgen_(),
-            evalDims_(param.nEvalDims_)
+            evalDims_(param.nEvalDims_),
+            pointSampler_()
         {
         }   
-
-        void randEvalDims(){
-            for(size_t i=0; i<evalDims_.size(); ++i){
-                evalDims_[i].first  = randPatchPoint();
-                evalDims_[i].second = randPatchPoint();
-                while( evalDims_[i].first==evalDims_[i].second){
-                    evalDims_[i].second = randPatchPoint();
-                }
-            }
-        }
-
-        PIndex randPatchPoint()const{
-            PIndex index;
-            for(size_t d=0; d<3; ++d){
-                index[d] = randgen_.uniformInt(param_.patchRadius_*2 +1)-param_.patchRadius_;
-                SKNEURO_CHECK_OP(index[d],<=,param_.patchRadius_,"");
-                SKNEURO_CHECK_OP(index[d],>=,-1*param_.patchRadius_,"");
-            }
-            return index;
-        }
-        FIndex randFeature()const{
-            FIndex index;
-            for(size_t d=0; d<3; ++d){
-                index[d] = randgen_.uniformInt(param_.patchRadius_*2 +1)-param_.patchRadius_;
-                SKNEURO_CHECK_OP(index[d],<=,param_.patchRadius_,"");
-                SKNEURO_CHECK_OP(index[d],>=,-1*param_.patchRadius_,"");
-            }
-            index[3] = randgen_.uniformInt(features_.shape(3));
-            return index;
-        }
+        //FIndex randFeature()const{
+        //    FIndex index;
+        //    for(size_t d=0; d<3; ++d){
+        //        index[d] = randgen_.uniformInt(param_.patchRadius_*2 +1)-param_.patchRadius_;
+        //        SKNEURO_CHECK_OP(index[d],<=,param_.patchRadius_,"");
+        //        SKNEURO_CHECK_OP(index[d],>=,-1*param_.patchRadius_,"");
+        //    }
+        //    index[3] = randgen_.uniformInt(features_.shape(3));
+        //    return index;
+        //}
         
         template<class INSTANCE>
         void fillBuffer(
@@ -433,7 +217,6 @@ namespace skneuro{
                 }
                 tmp[3] = fIndex[3];
                 buffer[i] = features_[tmp];
-                //std::cout<<"buffer "<<buffer[i]<<"\n";
             }
         }
 
@@ -507,9 +290,13 @@ namespace skneuro{
             SKNEURO_CHECK_OP(nInstances, >=, 2, "error, to few instances for split");
 
             // eval dims
-            randEvalDims();
+            std::cout<<"get rand evals points\n";
+            evalDims_ = pointSampler_.randPatchPointPairVec(param_.sigma1_,
+                                                            param_.sigma2_,
+                                                            param_.patchRadius_,
+                                                            param_.nEvalDims_);
 
-            
+            std::cout<<"make explicit labeling\n";
             // make labeling explicit
             makeExplicitLabels(instIn);
 
@@ -533,7 +320,8 @@ namespace skneuro{
             for(size_t  tryNr=0; tryNr<param_.mtry_ && !foundPerfekt; ++tryNr){
                 //std::cout<<"   try "<<tryNr<<"\n";
                 // select a random feature index
-                FIndex rFeatureIndex = randFeature();
+                FIndex rFeatureIndex = pointSampler_.randPatchPointAndFeature(param_.sigma2_, 
+                                                     param_.patchRadius_, features_.shape(3));
                 //std::cout<<"randFetures : ";
                // /for(size_t ff=0; ff<4; ++ff){
                // /    std::cout<<rFeatureIndex[ff]<<" ";
@@ -580,15 +368,14 @@ namespace skneuro{
 
         FeatureVolume features_;
         LabelVolume labels_;
+
         Parameter param_;
         vigra::RandomNumberGenerator<> randgen_;
         EvalDimVec evalDims_;
-
-        vigra::MultiArray<1,double> distA_;
-        vigra::MultiArray<1,double> distB_;
-
         ExplicitLabels explicitLables_;
         vigra::MultiArray<1, size_t> flatLabels_;
+
+        PatchPointSampler<3> pointSampler_;
     };
 
 

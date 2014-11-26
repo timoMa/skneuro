@@ -34,13 +34,15 @@ public:
         };
         Parameter(){
             initType_ = KPP;
-            maxIter_ = 100;
+            maxIter_ = 1000;
             batchSize_ = 1000;
+            convergence_ =  0.000005;
         }
         size_t numberOfCluters_;
         InitType initType_;
         size_t maxIter_;
         size_t batchSize_;
+        double convergence_;
     };
 
 
@@ -64,7 +66,7 @@ public:
 
         // reshape centers
         centers_.reshape(vigra::TinyVector<int,2>(nFeat, param_.numberOfCluters_));
-
+        centers2_.reshape(vigra::TinyVector<int,2>(nFeat, param_.numberOfCluters_));
 
         // initialization
         if(param_.initType_ == Parameter::KPP){
@@ -82,8 +84,9 @@ public:
         std::vector<size_t> cachedCenters(param_.batchSize_);
         std::vector<size_t> miniBatchExamples(nInst);
         std::vector<size_t> perCenterCount(param_.numberOfCluters_, 0);
+
         for(size_t iter=0; iter<param_.maxIter_; ++iter){
-            std::cout<<"iter "<<iter<<"\n";
+            //std::cout<<"iter "<<iter<<"\n";
             // pick mini batch examples
             for(size_t inst=0; inst<nInst; ++inst){
                 miniBatchExamples[inst] = inst;
@@ -126,6 +129,19 @@ public:
                 centerC *= (1.0 - n);
                 centerC += instanceMi;
             }
+            if(iter == 0 ){
+                centers2_ = centers_;
+            }
+            else if(iter%10 == 0){
+                centers2_-=centers_;
+
+                const double diff = centers2_.norm();
+                std::cout<<"diff "<<diff<<"  "<<param_.convergence_<<"\n";
+                if(diff<param_.convergence_){
+                    break;
+                }
+                centers2_ = centers_;
+            }
         }
     }
     
@@ -136,6 +152,7 @@ public:
 private:
     Parameter param_;
     Centers centers_;
+    Centers centers2_;
     vigra::RandomNumberGenerator<> randgen_;
     vigra::metrics::SquaredNorm<NumericType> metric_;
 };

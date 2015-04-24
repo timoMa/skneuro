@@ -1,9 +1,9 @@
-#include "skneuro/utilities/blocking.hxx"
 #include <vigra/multi_convolution.hxx>
 #include <vigra/convolution.hxx>
 #include <vigra/tinyvector.hxx>
 #include "eigen_decomposition3.hxx"
 #include <vigra/multi_iterator.hxx>
+#include <vigra/multi_blocking.hxx>
 
 namespace skneuro{
 
@@ -313,8 +313,8 @@ struct BlockUpdate{
     typedef vigra::MultiCoordinateIterator<DIM> CoordIter;
     typedef vigra::TinyVector<double, (DIM*DIM+DIM)/2> TensorType;
     typedef vigra::TinyVector<int, DIM> Shape;
-    typedef Blocking<int , DIM> BlockingType;
-    typedef typename BlockingType::BlockWithBorderType BlockWithBorder;
+    typedef vigra::MultiBlocking<DIM> BlockingType;
+    typedef typename BlockingType::BlockWithBorder BlockWithBorder;
 
     typedef vigra::TinyVector<double, DIM> GradVec;
 
@@ -332,8 +332,8 @@ struct BlockUpdate{
     void operator()(){
 
         // sub image
-        vigra::MultiArrayView<DIM, T> subImg = img_.subarray(block_.blockWithBorder().begin(),
-                                                               block_.blockWithBorder().end());
+        vigra::MultiArrayView<DIM, T> subImg = img_.subarray(block_.border().begin(),
+                                                               block_.border().end());
 
         
         //vigra::MultiArray<DIM, T> subImgS(subImg.shape());
@@ -422,12 +422,12 @@ struct BlockUpdate{
 
         //std::cout<<"get views\n";
         vigra::MultiArrayView<DIM, T> subSubImg = subImg.subarray(
-                                                         block_.blockLocalCoordinates().begin(), 
-                                                         block_.blockLocalCoordinates().end());
+                                                         block_.localCore().begin(), 
+                                                         block_.localCore().end());
 
         vigra::MultiArray<DIM, double> subSubDiv = divergence.subarray(
-                                                         block_.blockLocalCoordinates().begin(), 
-                                                       block_.blockLocalCoordinates().end());
+                                                         block_.localCore().begin(), 
+                                                       block_.localCore().end());
 
         //std::cout<<"update\n";
         subSubDiv*= param_.dt_;
@@ -518,8 +518,9 @@ template<unsigned int DIM, class T>
 void blockwiseDiffusion( vigra::MultiArrayView<DIM,T> & img, const DiffusionParam & param){
 
     typedef vigra::TinyVector<int, DIM> Shape;
-    typedef Blocking<int , DIM> BlockingType;
-
+    typedef vigra::MultiBlocking<DIM> BlockingType;
+    typedef typename BlockingType::BlockWithBorder BlockWithBorder;
+    typedef typename BlockingType::BlockWithBorderIter BlockWithBorderIter;
     Shape shape = img.shape();
     Shape blockShape(DIM==3 ? 100 : 256);
     for(size_t d=0; d<DIM; ++d){
@@ -532,14 +533,43 @@ void blockwiseDiffusion( vigra::MultiArrayView<DIM,T> & img, const DiffusionPara
     const int margin = 30;
     while(t < param.maxT_){
 
+        
+        //#pragma omp parallel for
+        //for(size_t bi=0; bi<blocking.size(); ++bi){
+        //    BlockUpdate<DIM, T> bu(img, blocking.blockWithBorder(bi,margin), param);
+        //    bu();
+        //}
+  
+
         std::cout<<"t "<<t<<"\n";
-        #pragma omp parallel for
-        for(size_t bi=0; bi<blocking.size(); ++bi){
-            BlockUpdate<DIM, T> bu(img, blocking.blockWithBorder(bi,margin), param);
-            bu();
+        #pragma omp parallel
+        {
+            vigra::TinyVector<vigra::MultiArrayIndex, DIM> b(margin);
+            BlockWithBorderIter iter  =  blocking.blockWithBorderBegin(b);
+            //std::cout<<"blockshape "<<(*iter).core().size()<<"\n";
+
+            #pragma omp for
+            for(int i=0 ; i<blocking.numBlocks(); ++i){
+                const BlockWithBorder bwb = iter[i];
+                BlockUpdate<DIM, T> bu(img, bwb, param);
+                bu();
+            }
         }
         t += param.dt_;
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
 }
 
 

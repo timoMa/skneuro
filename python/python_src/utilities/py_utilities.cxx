@@ -34,8 +34,4 @@ BOOST_PYTHON_MODULE_INIT(_utilities) {
     boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
     boost::python::docstring_options docstringOptions(true,true,false);
     // No not change 4 line above
-
-    export_block();
-    export_blocking();
-    export_block_data();
 }

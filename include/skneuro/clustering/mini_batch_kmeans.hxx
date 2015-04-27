@@ -57,12 +57,15 @@ public:
 
     void fit(const FeaturesView & X){
 
-        std::cout<<"MINI BATCH K MEANS with #"<<param_.numberOfCluters_<<"clusters \n";
+        //std::cout<<"MINI BATCH K MEANS with #"<<param_.numberOfCluters_<<"clusters \n";
         const size_t nFeat = X.shape(0);
         const size_t nInst = X.shape(1);
 
         SKNEURO_CHECK_OP(nInst, >= , param_.numberOfCluters_ ,"not enough instances");
-        SKNEURO_CHECK_OP(nInst, >= , param_.batchSize_ ,"not enough instances");
+
+        if(nInst <= param_.batchSize_)
+            param_.batchSize_ = nInst / 2;
+
 
         // reshape centers
         centers_.reshape(vigra::TinyVector<int,2>(nFeat, param_.numberOfCluters_));
@@ -136,7 +139,7 @@ public:
                 centers2_-=centers_;
 
                 const double diff = centers2_.norm();
-                std::cout<<"diff "<<diff<<"  "<<param_.convergence_<<"\n";
+                //std::cout<<"diff "<<diff<<"  "<<param_.convergence_<<"\n";
                 if(diff<param_.convergence_){
                     break;
                 }

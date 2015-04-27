@@ -33,7 +33,9 @@ namespace skneuro{
             Tree,
             Dag
         };
-
+        RfTopologyParam(){
+            minInstancesForSplit_ = 2;
+        }
 
         GraphTopology graphTopology_;
         size_t maxDepth_;
@@ -159,7 +161,7 @@ namespace skneuro{
             Parameter(){
                 patchRadius_ = 5;
                 mtry_ = 0;
-                nEvalDims_ = 100;
+                nEvalDims_ = 1000;
                 maxWeakLearnerExamples_ = 100000;
                 labelClusters_ = 4;
                 sigma1_ = 4.0 ;
@@ -193,16 +195,7 @@ namespace skneuro{
             pointSampler_()
         {
         }   
-        //FIndex randFeature()const{
-        //    FIndex index;
-        //    for(size_t d=0; d<3; ++d){
-        //        index[d] = randgen_.uniformInt(param_.patchRadius_*2 +1)-param_.patchRadius_;
-        //        SKNEURO_CHECK_OP(index[d],<=,param_.patchRadius_,"");
-        //        SKNEURO_CHECK_OP(index[d],>=,-1*param_.patchRadius_,"");
-        //    }
-        //    index[3] = randgen_.uniformInt(features_.shape(3));
-        //    return index;
-        //}
+
         
         template<class INSTANCE>
         void fillBuffer(
@@ -254,15 +247,13 @@ namespace skneuro{
             typedef typename KMeans::Parameter KMeansParam;
 
             KMeansParam kMeansParam;
-            kMeansParam.numberOfCluters_ = param_.labelClusters_;
+            kMeansParam.numberOfCluters_ = std::min(param_.labelClusters_,size_t(shape[0]));
 
             KMeans kMeans(kMeansParam);
 
             kMeans.fit(explicitLables_);
             vigra::metrics::SquaredNorm<double> metric;
-            std::cout<<"find Nearest\n";
             findNearest(explicitLables_, kMeans.centers(), metric, flatLabels_);
-            std::cout<<"find NearestDone\n";
         }
 
         // find a split
@@ -318,37 +309,30 @@ namespace skneuro{
             Evaluator evaluator(param_.labelClusters_, flatLabels_);
 
             for(size_t  tryNr=0; tryNr<param_.mtry_ && !foundPerfekt; ++tryNr){
-                //std::cout<<"   try "<<tryNr<<"\n";
-                // select a random feature index
+                
+                // get a random feature index
                 FIndex rFeatureIndex = pointSampler_.randPatchPointAndFeature(param_.sigma2_, 
                                                      param_.patchRadius_, features_.shape(3));
-                //std::cout<<"randFetures : ";
-               // /for(size_t ff=0; ff<4; ++ff){
-               // /    std::cout<<rFeatureIndex[ff]<<" ";
-               // /}
-               // /std::cout<<"\n";
-
-                // fill buffer for that feature
+                
+                // make the feature explicit 
                 fillBuffer(instIn, rFeatureIndex, featureBuffer);
 
-                //std::cout<<"eval split\n";
+                // search for the best split w.r.t. this feature
                 std::pair<T, double> res = evaluator.bestSplit(featureBuffer);
 
+                // is the split w.r.t. this feature
+                // better then the current best feature
                 if(res.second < bestEvalVal){
                     std::cout<<" varbest "<<std::setprecision(10)<<res.second <<"\n";
                     bestEvalVal = res.second;
                     splitInfo.splitFeature = rFeatureIndex;
                     splitInfo.featureValThreshold = res.first;
                 }
-                else{
-                    //std::cout<<" var cur "<<std::setprecision(10)<<res.second <<"\n";
-                }
             }
 
+            // realize the split 
+            // (this should be refactored in a func.)
             featureBuffer.resize(nTotal);
-            
-            
-
             // realize split
             fillBuffer(instInAll, splitInfo.splitFeature, featureBuffer);
             for(size_t i=0; i<instInAll.size(); ++i){

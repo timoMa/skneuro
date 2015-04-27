@@ -41,7 +41,7 @@ public:
 
     void fit(const FeaturesView & X){
 
-        std::cout<<"start to fit #"<<param_.numberOfCluters_<<"clusters \n";
+        //std::cout<<"start to fit #"<<param_.numberOfCluters_<<"clusters \n";
 
         boost::mt19937 gen_for_k_means_plus;
 
@@ -63,7 +63,7 @@ public:
         centerIndexSet.insert(k0);
 
         for(size_t ki=1; ki<param_.numberOfCluters_; ++ki){
-            std::cout<<"ki "<<ki<<"\n";
+            //std::cout<<"ki "<<ki<<"\n";
             // compute the shortest distance from 
             // all instances to all currently
             // assigned clusters

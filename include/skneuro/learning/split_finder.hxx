@@ -234,6 +234,10 @@ namespace skneuro{
             }
 
 
+            if(std::abs(features[indices_[0]] - features[indices_[nInst_-1]])<0.00000001){
+                SKNEURO_CHECK_OP(false,==,true,"dangerous feature");
+            }
+
             std::pair<F,double> retVal;
             retVal.first = F();
             retVal.second = std::numeric_limits<double>::infinity();
@@ -252,7 +256,7 @@ namespace skneuro{
                 fromBtoA(labels_(changingIndex));
 
                 // eval
-                if(i+1< nInst_-1 && std::abs(features[changingIndex] - features[indices_[i+1]])<0.000001){
+                if(i+1< nInst_-1 && std::abs(features[changingIndex] - features[indices_[i+1]])<0.00000001){
                     continue;
                 }
 

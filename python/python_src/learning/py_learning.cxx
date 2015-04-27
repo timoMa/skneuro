@@ -40,5 +40,5 @@ BOOST_PYTHON_MODULE_INIT(_learning) {
     export_feature_extraction();
     export_compare();
     export_gt_helper();
-    export_patch_rf();
+    //export_patch_rf();
 }

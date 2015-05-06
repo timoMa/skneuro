@@ -114,7 +114,7 @@ void export_blocking(){
 
     bp::class_<BwbIterHolder>("BwbIterHolder",bp::no_init)
     //.def("__iter__",bp::range<bp::return_value_policy<bp::return_by_value> >(&BwbIterHolder::begin,&BwbIterHolder::end))
-    .def("__iter__",bp::iterator<const BwbIterHolder >())
+    //.def("__iter__",bp::iterator<const BwbIterHolder >())
     .def("getBlock",&BwbIterHolder::getBlock)
     ;
 

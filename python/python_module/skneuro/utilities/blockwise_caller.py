@@ -17,24 +17,33 @@ def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, o
     if nThreads is None:
         nThreads = cpu_count()
     shape = inputKwargs.itervalues().next().shape
+    #print "shape ",shape
     blocking = Blocking3d(shape,blockShape)
     nBlocks = len(blocking)
     #pool = ThreadPool(nThreads)
 
+    #print "nThreads",nThreads
+    #print "blockShape",blockShape,blocking.blockShape()
+    #print "shape",shape,blocking.shape()
+    #print "margin",margin
 
-    def threadFunction(f, blocking, blockIndex, margin, inputKwargs, paramKwagrs, out, lock, 
+    def threadFunction(f, blockWithBorder, blockIndex, margin, inputKwargs, paramKwagrs, out, lock, 
                        doneBlocks=None, printNth=10):
 
-    
+        lock.acquire(True)
+        #print "border",blockWithBorder.border().begin(),blockWithBorder.border().end()
+        #print "core",blockWithBorder.core().begin(),blockWithBorder.core().end()
+        #print "localCore",blockWithBorder.localCore().begin(),blockWithBorder.localCore().end()
+        lock.release()
         # get the block with border / margin
-        block = blocking.blockWithBorder(blockIndex, width=margin)
+        #blockWithBorder = blocking.blockWithBorder(blockIndex, width=margin)
 
         # make the arguments
         kwargs = dict()
         for keyword in inputKwargs.keys():
             # write data from total into block
             array = vigra.taggedView(inputKwargs[keyword], 'xyz')
-            blockArray = extractBlock(block, array)
+            blockArray = extractBlock(blockWithBorder, array)
             kwargs[keyword] = blockArray
         kwargs.update(paramKwagrs)
 
@@ -43,7 +52,7 @@ def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, o
         #write back to global out
 
 
-        writeFromBlock(block, blockOutput, out)
+        writeFromBlock(blockWithBorder, blockOutput, out)
 
         if doneBlocks is not None:
             doneBlocks[blockIndex] = 1
@@ -61,10 +70,23 @@ def blockwiseCaller(f, margin, blockShape, nThreads, inputKwargs, paramKwagrs, o
         doneBlocks = numpy.zeros(nBlocks)
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=nThreads) as executor:
+
+        iterHolder = blocking.blockWithBorderIter([margin]*3)
         for blockIndex in range(nBlocks):
-            executor.submit(threadFunction, f=f, blocking=blocking, margin=margin,
+            #print "submit",blockIndex,nBlocks,blockWithBorder
+            blockWithBorder = iterHolder.getBlock(blockIndex)
+            executor.submit(threadFunction, f=f, blockWithBorder=blockWithBorder, margin=margin,
                             blockIndex=blockIndex, inputKwargs=inputKwargs,
                             paramKwagrs=paramKwagrs, out=out, lock=lock, doneBlocks=doneBlocks)
+            blockIndex+=1
+            if blockIndex == nBlocks:
+                break
+
+
+        #for blockIndex in range(nBlocks):
+        #    executor.submit(threadFunction, f=f, blocking=blocking, margin=margin,
+        #                    blockIndex=blockIndex, inputKwargs=inputKwargs,
+        #                    paramKwagrs=paramKwagrs, out=out, lock=lock, doneBlocks=doneBlocks)
         del doneBlocks
         doneBlocks = None
 

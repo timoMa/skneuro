@@ -6,7 +6,11 @@
 #--------------------------------------------------------------
 # Add MODULES  
 #--------------------------------------------------------------
-add_library( _utilities SHARED  py_utilities.cxx
+add_library( _utilities SHARED  
+    py_utilities.cxx
+    py_utilities_block.cxx
+    py_utilities_block_data.cxx
+    py_utilities_blocking.cxx
 )
 
 

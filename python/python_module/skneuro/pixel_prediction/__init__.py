@@ -1,12 +1,63 @@
 import vigra
 from vigra import graphs,numpy
 import skneuro.denoising as dn
-def pmapSizeFilter(neuroCCPmap, minSize):
 
-    shape = neuroCCPmap.shape
-    # do thresholding
-    neuroCCBinaryPmap  = numpy.zeros(neuroCCPmap.shape, dtype='uint8')
-    neuroCCBinaryPmap[neuroCCPmap>0.5] = 1
+
+
+
+
+
+
+
+
+
+
+def post_process_semantic_probs(
+    rawData,
+    probabilities,
+    classMeaning = dict(void=0,membrane=1,membraneBoundary=2,mito=3,mitoBoundary=4,stuff=5),
+    membraneDiameter = 15.0
+    preSmoothPower = 2
+):
+    assert preSmoothPower >= 1
+
+    if preSmoothPower is not 1:
+        probabilities = probabilities**preSmoothPower
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+def computeFeatures(inputFiles, sortedFeatures, featureFolder):
+
+
+    for inputFile in inputFiles:
+
+        print "processing file ", inputFile
+
+
+
+
+
+
+
+def pmapSizeFilter(neuroCCBinaryPmap, minSize):
+    """
+    keywords:
+        neuroCCBinaryPmap:  zero where membranes are
+                            one where neurons are
+
+    """
+    shape = neuroCCBinaryPmap.shape
 
 
     # get the connected components 
@@ -48,26 +99,31 @@ def pmapSizeFilter(neuroCCPmap, minSize):
             # flip color
             nodeColor[nid] = int(not bool(nodeColor[nid]))
 
-
     pixelColor = rag.projectNodeFeaturesToGridGraph(nodeColor)
-
     return pixelColor,neuroCCBinaryPmap
 
 
 
+class GaussianSmoothing(object):
+    def __init__(self, sigmas):
+        pass
+
+    def __call___(self, inFile, featureFolder, cachedInput = None):
+        pass
+
+
 if __name__ == '__main__':
     import skneuro
-    data = numpy.random.rand(100,100,100)
-    dataM = dn.ballRankOrderFilter(data.astype('float32'),radius=2, rank=0.4)
-    dataM = 1-dataM
-    sizeFilterd,dataT = pmapSizeFilter(dataM, minSize=10)
+    from skneuro import pixel_prediction as pp
 
-
-    grayData = [(data, "data"),
-                (dataM, "dataM"),
-                (dataT, "dataT"),
-                (sizeFilterd,"sizeFilterd")
+    
+    inputFiles = [
+        ( ('train.h5', 'data'), 'training'),
+        ( ('test.h5', 'data'), 'test'),
     ]
-    segData  = []
 
-    skneuro.addHocViewer(grayData, segData)
+    featureFolder = 'feature_folder'
+    sortedFeatures = []
+    pp.computeFeatures(inputFiles=inputFiles,
+                       sortedFeatures=sortedFeatures,
+                       featureFolder=featureFolder)

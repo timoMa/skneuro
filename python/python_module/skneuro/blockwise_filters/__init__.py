@@ -211,6 +211,11 @@ def blockwiseHessianOfGaussianLargestEigenvalues(image,  scale, out=None, blockS
         paramKwagrs=dict(scale=scale), out=out)
     return out
 
+
+
+
+
+
 hessianOfGaussianLargestEigenvalues = blockwiseHessianOfGaussianLargestEigenvalues
 
 def binwiseDistaneTransform(image, minmax, bins):

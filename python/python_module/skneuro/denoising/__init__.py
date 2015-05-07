@@ -42,6 +42,7 @@ def nonLocalMean(
 
 def gaussianSmoothing(image,sigma):
     inImg = numpy.require(image, dtype=numpy.float32)
+    print inImg.shape
     inImg = vigra.taggedView(inImg, 'xyz')
     #print inImg.shape, inImg.dtype
     return vigra.gaussianSmoothing(inImg, sigma=sigma)
@@ -149,6 +150,7 @@ def guidedFilter(image, epsilon, guidanceImage=None, fMean=None):
         # 2) var and cov    
         varG = corrG - meanG*meanG
         covGI = varG
+        guidanceImage = image
     else:
         # 1) mean an corr
         meanI = fMean(image)
@@ -176,12 +178,14 @@ def guidedFilter(image, epsilon, guidanceImage=None, fMean=None):
 
 
 def gaussianGuidedFilter(image,sigma,epsilon, guidanceImage=None):
-    meanFunction = partial(gaussianSmoothing,sigma=sigma)
-    return guidedFilter(image, guidanceImage, epsilon, meanFunction)
+    fMean = partial(gaussianSmoothing,sigma=sigma)
+    return guidedFilter(image=image, guidanceImage=guidanceImage, 
+                        epsilon=epsilon, fMean=fMean)
 
 def medianGuidedFilter(image,radius,epsilon, guidanceImage=None):
-    meanFunction = partial(medianSmoothing,radius=radius)
-    return guidedFilter(image, guidanceImage, epsilon, meanFunction)
+    fMean = partial(medianSmoothing,radius=radius)
+    return guidedFilter(image=image, guidanceImage=guidanceImage, 
+                        epsilon=epsilon, fMean=fMean)
 
 
 if __name__ == "__main__":

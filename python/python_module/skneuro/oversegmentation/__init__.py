@@ -3,9 +3,9 @@ import vigra
 from vigra import numpy
 import skneuro.denoising as denoise
 from  skneuro import addHocViewer
+from vigra import blockwise as vbw
 
-
-
+import skneuro
 
 class PiplineObject(object):
     pass
@@ -233,8 +233,123 @@ def prepareMinMap(raw, pmap, sPre=0.8, sInt=5.0, mapInterval=0.5,
 
     return mixedPmapG
 
-# IDEA
-#
-# merge 20 regions, 
-# and split 10 regions
-#
+
+
+
+def largeSeedWatershed(raw, pmap, seeds, membraneWidth = 7.0, visu=False):
+
+    blockShape = (100, )*3
+    cOpts = vbw.convOpts
+
+    pmap = numpy.require(pmap, dtype='float32')
+
+    # compute a smoothed map as tie breaker
+    opts = vbw.convOpts(blockShape=blockShape, sigma=membraneWidth/2.0)
+    gaussianSmoothedPmap  = vbw.gaussianSmooth(pmap, options=opts)
+    addEps = 0.3
+    growingMap = gaussianSmoothedPmap
+    growingMap *= addEps
+
+    # get the actual growing map
+    growingMap += pmap 
+    growingMap /= 1.0 + addEps
+
+
+    # do the actual watershed
+    growingMap = vigra.taggedView(growingMap, 'xyz')
+    seeds = numpy.require(seeds, dtype='uint32')
+    seeds = vigra.taggedView(seeds, 'xyz')
+    seg,nSeg = vigra.analysis.watershedsNew(image=growingMap, seeds=seeds)
+
+    if visu:
+        grayData = [
+        (raw, "raw"),
+        (pmap,"pmap"),
+        (growingMap,"growingMap")
+        ]
+        segData  = [
+            (seeds, "seeds"),
+            (seg, "seg")
+        ]
+        skneuro.addHocViewer(grayData, segData)
+
+    return seg,nSeg
+
+
+def getLargeSeeds(raw, pmap, membraneWidth , threshold , rank, visu=False):
+
+    print "pmap",pmap.shape
+
+    # make mebrane wider with ballRankOrderFilter
+    r = int(membraneWidth*0.5 + 0.5)
+    r = max(r, 1)
+    widerPmap = denoise.ballRankOrderFilter(pmap, radius=r, rank=0.75)
+
+    print "widerPmap",widerPmap.shape
+    
+
+    # renormalize
+    widerPmap -= widerPmap.min()
+    widerPmap /= widerPmap.max()
+
+
+    # binarize
+    binaryPmap = numpy.zeros(widerPmap.shape, dtype='uint8')
+    binaryPmap[pmap>threshold] = 1
+    #widerPmap = None  # save mem
+
+    # morphology  
+    # 1) make membrane wider by  r
+    r = int(membraneWidth*0.3 + 0.5)
+    r = max(r, 2)
+    mBinaryPmapA = vigra.filters.multiBinaryDilation(binaryPmap,r)
+    #binaryPmap = None  # save mem
+
+    # morphology  
+    # 1) make membrane smaller by  r
+    r = int(membraneWidth*0.1 + 0.5)
+    r = max(r, 1)
+    mBinaryPmapB = vigra.filters.multiBinaryErosion(mBinaryPmapA,r)
+    
+
+    # get seeds
+    invertedBinaryPmap = 1- mBinaryPmapB
+    invertedBinaryPmap = numpy.require(invertedBinaryPmap, dtype='uint32')
+    print "ishape",invertedBinaryPmap.shape
+    ccImg = vigra.analysis.labelVolumeWithBackground(invertedBinaryPmap)
+
+
+    if visu:
+        grayData = [
+            (raw, "raw"),
+            (pmap,"pmap"),
+            (widerPmap,"widerPmap"),
+            (binaryPmap,"binaryPmap"),
+            (mBinaryPmapA,"mBinaryPmapA"),
+            (mBinaryPmapB,"mBinaryPmapB"),
+        ]
+        segData  = [
+            (ccImg, "seeds"),
+            #(seg, "seg")
+        ]
+        skneuro.addHocViewer(grayData, segData)
+
+
+
+    return ccImg
+
+
+def pmapToSegmentation(raw, pmap, membraneWidth, threshold , rank, visu=False):
+    
+    # get the (very large) seeds
+    seeds = getLargeSeeds(raw=raw, pmap=pmap, 
+                          membraneWidth=membraneWidth,
+                          threshold=threshold, rank=rank,visu=visu)
+
+    # filter seeds?!!
+
+    # growing
+    seg,nSeg = largeSeedWatershed(raw=raw, pmap=pmap, seeds=seeds, membraneWidth=membraneWidth,visu=visu)
+
+
+    return seg,nSeg

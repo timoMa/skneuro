@@ -352,4 +352,4 @@ def pmapToSegmentation(raw, pmap, membraneWidth, threshold , rank, visu=False):
     seg,nSeg = largeSeedWatershed(raw=raw, pmap=pmap, seeds=seeds, membraneWidth=membraneWidth,visu=visu)
 
 
-    return seg,nSeg
+    return seg,nSeg,seeds

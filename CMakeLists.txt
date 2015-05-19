@@ -37,9 +37,9 @@ include_directories(${VIGRA_INCLUDE_DIR})
 # lemon
 #--------------------------------------------------------------
 #FIND_PACKAGE(LEMON REQUIRED)
-include_directories(${LEMON_INCLUDE_DIR})
-add_definitions(-DWITH_LEMON_GRAPH)
-add_definitions(-DWITH_LEMON)
+#include_directories(${LEMON_INCLUDE_DIR})
+#add_definitions(-DWITH_LEMON_GRAPH)
+#add_definitions(-DWITH_LEMON)
 #--------------------------------------------------------------
 # Boost
 #--------------------------------------------------------------

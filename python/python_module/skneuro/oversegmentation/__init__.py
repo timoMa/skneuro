@@ -372,6 +372,3 @@ def pmapToSegmentation(raw, pmap, membraneWidth, threshold , rank, seeds=None, v
 
 
     return seg,nSeg,seeds
-
-
-

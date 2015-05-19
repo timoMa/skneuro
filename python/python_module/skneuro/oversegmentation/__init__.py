@@ -236,6 +236,8 @@ def prepareMinMap(raw, pmap, sPre=0.8, sInt=5.0, mapInterval=0.5,
 
 
 
+
+
 def largeSeedWatershed(raw, pmap, seeds, membraneWidth = 7.0, visu=False):
 
     blockShape = (100, )*3
@@ -243,23 +245,24 @@ def largeSeedWatershed(raw, pmap, seeds, membraneWidth = 7.0, visu=False):
 
     pmap = numpy.require(pmap, dtype='float32')
 
-    # compute a smoothed map as tie breaker
-    opts = vbw.convOpts(blockShape=blockShape, sigma=membraneWidth/2.0)
-    gaussianSmoothedPmap  = vbw.gaussianSmooth(pmap, options=opts)
-    addEps = 0.3
-    growingMap = gaussianSmoothedPmap
-    growingMap *= addEps
+    with  vigra.Timer("smoothed tie breaker"):
+        # compute a smoothed map as tie breaker
+        opts = vbw.convOpts(blockShape=blockShape, sigma=membraneWidth/2.0)
+        gaussianSmoothedPmap  = vbw.gaussianSmooth(pmap, options=opts)
+        addEps = 0.3
+        growingMap = gaussianSmoothedPmap
+        growingMap *= addEps
 
-    # get the actual growing map
-    growingMap += pmap 
-    growingMap /= 1.0 + addEps
+        # get the actual growing map
+        growingMap += pmap 
+        growingMap /= 1.0 + addEps
 
-
-    # do the actual watershed
-    growingMap = vigra.taggedView(growingMap, 'xyz')
-    seeds = numpy.require(seeds, dtype='uint32')
-    seeds = vigra.taggedView(seeds, 'xyz')
-    seg,nSeg = vigra.analysis.watershedsNew(image=growingMap, seeds=seeds)
+    with  vigra.Timer("watershedsNew"):
+        # do the actual watershed
+        growingMap = vigra.taggedView(growingMap, 'xyz')
+        seeds = numpy.require(seeds, dtype='uint32')
+        seeds = vigra.taggedView(seeds, 'xyz')
+        seg,nSeg = vigra.analysis.watershedsNew(image=growingMap, seeds=seeds)
 
     if visu:
         grayData = [
@@ -278,46 +281,58 @@ def largeSeedWatershed(raw, pmap, seeds, membraneWidth = 7.0, visu=False):
 
 def getLargeSeeds(raw, pmap, membraneWidth , threshold , rank, visu=False):
 
-    print "pmap",pmap.shape
-
-    # make mebrane wider with ballRankOrderFilter
-    r = int(membraneWidth*0.5 + 0.5)
-    r = max(r, 1)
-    widerPmap = denoise.ballRankOrderFilter(pmap, radius=r, rank=0.75)
-
-    print "widerPmap",widerPmap.shape
+    with  vigra.Timer("ballRankOrderFilter"):
+        # make mebrane wider with ballRankOrderFilter
+        r = int(membraneWidth*0.35 + 0.5)
+        r = max(r, 1)
+        widerPmap1 = denoise.ballRankOrderFilter(pmap, radius=r, rank=rank)
+        widerPmap = denoise.ballRankOrderFilter(widerPmap1, radius=r, rank=rank)
+        widerPmap1 = None
     
+    with  vigra.Timer("normalize"):   
+        # renormalize
+        widerPmap -= widerPmap.min()
+        widerPmap /= widerPmap.max()
 
-    # renormalize
-    widerPmap -= widerPmap.min()
-    widerPmap /= widerPmap.max()
+    with  vigra.Timer("binarize"):   
+        # binarize
+        binaryPmap = numpy.zeros(widerPmap.shape, dtype='uint8')
+        binaryPmap[pmap>threshold] = 1
+        #widerPmap = None  # save mem
+        if visu == False:
+            widerPmap = None
 
 
-    # binarize
-    binaryPmap = numpy.zeros(widerPmap.shape, dtype='uint8')
-    binaryPmap[pmap>threshold] = 1
-    #widerPmap = None  # save mem
+    with  vigra.Timer("multiBinaryDilation"):  
+        # morphology  
+        # 1) make membrane wider by  r
+        r = int(membraneWidth*1.2 + 0.5)
+        r = max(r, 2)
+        mBinaryPmapA = vigra.filters.multiBinaryDilation(binaryPmap,r)
+        #binaryPmap = None  # save mem
+        if visu == False:
+            binaryPmap = None
 
-    # morphology  
-    # 1) make membrane wider by  r
-    r = int(membraneWidth*0.3 + 0.5)
-    r = max(r, 2)
-    mBinaryPmapA = vigra.filters.multiBinaryDilation(binaryPmap,r)
-    #binaryPmap = None  # save mem
+    #with  vigra.Timer("multiBinaryErosion"):  
+    #    # morphology  
+    #    # 1) make membrane smaller by  r
+    #    r = int(membraneWidth*0.1 + 0.5)
+    #    r = max(r, 1)
+    #    mBinaryPmapB = vigra.filters.multiBinaryErosion(mBinaryPmapA,r)
+    #    if visu == False:
+    #        mBinaryPmapA = None
 
-    # morphology  
-    # 1) make membrane smaller by  r
-    r = int(membraneWidth*0.1 + 0.5)
-    r = max(r, 1)
-    mBinaryPmapB = vigra.filters.multiBinaryErosion(mBinaryPmapA,r)
-    
+    with  vigra.Timer("labelVolumeWithBackground"):  
+        # get seeds
+        invertedBinaryPmap = 1- mBinaryPmapA
+        if visu == False:
+            mBinaryPmapB = None
 
-    # get seeds
-    invertedBinaryPmap = 1- mBinaryPmapB
-    invertedBinaryPmap = numpy.require(invertedBinaryPmap, dtype='uint32')
-    print "ishape",invertedBinaryPmap.shape
-    ccImg = vigra.analysis.labelVolumeWithBackground(invertedBinaryPmap)
+        invertedBinaryPmap = numpy.require(invertedBinaryPmap, dtype='uint32')
+        ccImg = vigra.analysis.labelVolumeWithBackground(invertedBinaryPmap)
 
+        if visu == False:
+            invertedBinaryPmap = None
 
     if visu:
         grayData = [
@@ -326,7 +341,7 @@ def getLargeSeeds(raw, pmap, membraneWidth , threshold , rank, visu=False):
             (widerPmap,"widerPmap"),
             (binaryPmap,"binaryPmap"),
             (mBinaryPmapA,"mBinaryPmapA"),
-            (mBinaryPmapB,"mBinaryPmapB"),
+            #(mBinaryPmapB,"mBinaryPmapB"),
         ]
         segData  = [
             (ccImg, "seeds"),
@@ -339,12 +354,16 @@ def getLargeSeeds(raw, pmap, membraneWidth , threshold , rank, visu=False):
     return ccImg
 
 
-def pmapToSegmentation(raw, pmap, membraneWidth, threshold , rank, visu=False):
+
+
+
+def pmapToSegmentation(raw, pmap, membraneWidth, threshold , rank, seeds=None, visu=False):
     
-    # get the (very large) seeds
-    seeds = getLargeSeeds(raw=raw, pmap=pmap, 
-                          membraneWidth=membraneWidth,
-                          threshold=threshold, rank=rank,visu=visu)
+    if seeds is None:
+        # get the (very large) seeds
+        seeds = getLargeSeeds(raw=raw, pmap=pmap, 
+                              membraneWidth=membraneWidth,
+                              threshold=threshold, rank=rank,visu=visu)
 
     # filter seeds?!!
 
@@ -352,4 +371,7 @@ def pmapToSegmentation(raw, pmap, membraneWidth, threshold , rank, visu=False):
     seg,nSeg = largeSeedWatershed(raw=raw, pmap=pmap, seeds=seeds, membraneWidth=membraneWidth,visu=visu)
 
 
-    return seg,nSeg
+    return seg,nSeg,seeds
+
+
+

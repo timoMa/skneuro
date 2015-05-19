@@ -9,6 +9,7 @@
 namespace skneuro{
 
 
+
     template<class T>
     void ballRankOrderFilter(
         const vigra::MultiArrayView<3,T> & image,
@@ -24,6 +25,9 @@ namespace skneuro{
         CoordType cc(vigra::SkipInitialization);
         CoordType oc(vigra::SkipInitialization);
 
+
+        std::vector<vigra::TinyVector<int,3> > discPoints;
+
         std::vector<unsigned char> mask(std::pow(size,3),0);
         {
             size_t i=0;
@@ -31,10 +35,14 @@ namespace skneuro{
             for(cc[1]=-radius; cc[1]<radius+1; ++cc[1])
             for(cc[0]=-radius; cc[0]<radius+1; ++cc[0], ++i){
                 const float r = vigra::norm(cc);
-                if(r<=radius)
+                if(r<=radius){
                     mask[i]=1;
+                    discPoints.push_back(cc);
+                }
             }
         }   
+
+
 
 
         
@@ -52,18 +60,30 @@ namespace skneuro{
                 CoordType oc(vigra::SkipInitialization);
                 size_t i=0; 
                 size_t ii=0;
-                for(oc[2]=s[2]; oc[2]<e[2]; ++oc[2])
-                for(oc[1]=s[1]; oc[1]<e[1]; ++oc[1])
-                for(oc[0]=s[0]; oc[0]<e[0]; ++oc[0], ++i){
 
-                    if(mask[i]==1 && 
-                       oc[0] >= 0       && oc[1] >= 0       && oc[2] >= 0 &&
+
+                for(size_t dpi=0; dpi<discPoints.size();++dpi){
+                    oc = c + discPoints[dpi];
+                    if(oc[0] >= 0       && oc[1] >= 0       && oc[2] >= 0 &&
                        oc[0] < shape[0] && oc[1] < shape[1] && oc[2] < shape[2]){
-                        // inside mask and image
                         buffer[ii] = image[oc];
                         ++ii;
                     }
                 }
+
+
+
+                //for(oc[2]=s[2]; oc[2]<e[2]; ++oc[2])
+                //for(oc[1]=s[1]; oc[1]<e[1]; ++oc[1])
+                //for(oc[0]=s[0]; oc[0]<e[0]; ++oc[0], ++i){
+                //    if(mask[i]==1 && 
+                //       oc[0] >= 0       && oc[1] >= 0       && oc[2] >= 0 &&
+                //       oc[0] < shape[0] && oc[1] < shape[1] && oc[2] < shape[2]){
+                //        // inside mask and image
+                //        buffer[ii] = image[oc];
+                //        ++ii;
+                //    }
+                //}
 
                 std::sort(buffer.begin(), buffer.begin() + ii);
                 

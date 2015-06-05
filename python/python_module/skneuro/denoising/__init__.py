@@ -188,6 +188,76 @@ def medianGuidedFilter(image,radius,epsilon, guidanceImage=None):
                         epsilon=epsilon, fMean=fMean)
 
 
+
+
+
+
+
+def pmapGapClosing(pmap,strength=5.0, alpha=0.001, t=10, dt=0.1,
+                   innerScale = 5.0, outerScale=15.0,
+                   sigmaStep=0.5, C=1.0, m=10, initNoise=0.01,
+                   renormalize=True, takeMax=True):
+    
+    def clipOnQuantile(array, ql,qh):
+        quantiles = numpy.percentile(array,[ql*100.0,qh*100.0])
+        print quantiles
+        print array.min(), array.max()
+
+        out = numpy.clip(array,quantiles[0],quantiles[1])#.reshape(imgIn.shape)
+        out -= quantiles[0]
+        out /=(quantiles[1] - quantiles[0])
+        print out.min(),out.max()
+        return out
+
+
+    pmap = pmap.squeeze()
+    shape = pmap.shape
+    ndim = pmap.ndim
+    diffused = clipOnQuantile(pmap,0.001,0.999)*255.0
+    diffused = numpy.array(diffused) + numpy.random.rand(*shape)*initNoise
+    #diffused = clipOnQuantile(pmap,0.001,0.999)*255.0
+
+    param = DiffusionParam()
+    param.strength = strength
+    param.alpha = alpha # smoothing orthogonal to plane
+    param.maxT = t
+    param.dt = dt
+    param.useSt = True # strucut
+
+    param.sigmaTensor1 = innerScale # estimate of orientations
+    param.sigmaTensor2 = outerScale # collect orientations
+    param.sigmaStep = sigmaStep # use a very small one (for divergence)
+    param.C = C # if to large no diffusion(??)
+    param.m = m
+    diffused = numpy.require(diffused,dtype='float32')
+    if(ndim == 2):
+        diffused = diffusion2d(diffused, param)
+    else:
+        diffused = diffusion3d(diffused, param)
+
+
+    if renormalize :
+        out = clipOnQuantile(pmap,0.001,0.999)*255.0
+        diffused = clipOnQuantile(diffused,0.05,0.9)*255.0
+        w=numpy.where(out.view(numpy.ndarray)>diffused.view(numpy.ndarray))
+        out[w] = diffused[w]
+        return out
+
+    return diffused
+
+
+
+
+def rpmapGapClosing(pmap,iterations,**kwargs):
+    
+    smoothed = pmap.copy()
+    for i in range(iterations):
+        newSmootehd = pmapGapClosing(smoothed,**kwargs)
+        smoothed[:] = newSmootehd[:]
+
+    return smoothed
+
+
 if __name__ == "__main__":
     import numpy
     import vigra

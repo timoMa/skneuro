@@ -7,46 +7,12 @@ from vigra import blockwise as vbw
 
 import skneuro
 
-class PiplineObject(object):
-    pass
-
-
-
-class EdgeBleeding(object):
-    def __init__(self):
-        pass
-
-    def evaluate(self, segTrue, segPredicted):
-        pass
 
 
 
 
-class SeededWatershed(PiplineObject):
-
-    def __init__(self):
-        pass
-
-    def parameters(self):
-        pass
-
-    def fit(self, DATA , SEG):
-        pmap = DATA['pmap']
-
-        seeds = _getSeeds(self, DATA, SEG)
 
 
-    def _getSeeds(self, DATA, SEG):
-        """
-
-        """
-
-        # get initial seeds by local minima
-
-        # find k nearest neighbors of each seed
-        # and make 
-        
-        pass
 
 
 
@@ -353,10 +319,6 @@ def getLargeSeeds(raw, pmap, membraneWidth , threshold , rank, visu=False):
 
     return ccImg
 
-
-
-
-
 def pmapToSegmentation(raw, pmap, membraneWidth, threshold , rank, seeds=None, visu=False):
     
     if seeds is None:
@@ -372,3 +334,14 @@ def pmapToSegmentation(raw, pmap, membraneWidth, threshold , rank, seeds=None, v
 
 
     return seg,nSeg,seeds
+
+
+
+
+def waterSlic(image, pmap, seedDist, scaling,
+              seedSegmentor,threshold=0.5):
+    pass
+
+
+def honyshed(pmap):
+    pass

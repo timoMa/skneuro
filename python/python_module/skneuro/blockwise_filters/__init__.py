@@ -1,5 +1,6 @@
 from ..utilities import blockwiseCaller as _bc
 from .. import denoising
+from .. import parallel
 from multiprocessing import cpu_count
 import numpy
 import vigra
@@ -46,14 +47,20 @@ def truncatedDistanceTransform(image, truncateAt, background = True, out=None, b
         paramKwagrs=dict(truncateAt=truncateAt, background=background), out=out)
     return out
 
-def blockwiseMedianSmoothing(image, radius, mode='reflect', cval=0.0, origin=0,
-                             blockShape=None, nThreads=cpu_count()):
-    blockShape, out = _prepare(image.shape, blockShape)
-    margin = int(radius + 1)
 
-    func = denoising.medianSmoothing
+
+def gaussianRankOrder(image, ranks, sigmaS, sigmaB=1.0, bins=100,
+                             blockShape=None, nThreads=cpu_count()):
+    blockShape, out = _prepare(image.shape, blockShape, channels=len(ranks))
+    margin = int(3.0*sigmaS + 0.5)
+
+    sigmas = (sigmaS, sigmaS, sigmaS, sigmaB)
+
+    minVal,maxVal = parallel.arrayMinMax(image)
+
+    func = vigra.histogram.gaussianRankOrder
     _bc(f=func, margin=margin, blockShape=blockShape, nThreads=nThreads, inputKwargs=dict(image=image),
-        paramKwagrs=dict(radius=radius, mode=mode, cval=cval, origin=origin), out=out)
+        paramKwagrs=dict(sigmas=sigmas,ranks=ranks,bins=bins,minVal=minVal,maxVal=maxVal), out=out)
     return out
 
 

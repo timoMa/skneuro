@@ -542,6 +542,7 @@ void blockwiseDiffusion( vigra::MultiArrayView<DIM,T> & img, const DiffusionPara
   
 
         std::cout<<"t "<<t<<"\n";
+        //std::cout<<"enter parallel\n";
         #pragma omp parallel
         {
             vigra::TinyVector<vigra::MultiArrayIndex, DIM> b(margin);
@@ -556,7 +557,7 @@ void blockwiseDiffusion( vigra::MultiArrayView<DIM,T> & img, const DiffusionPara
             }
         }
         t += param.dt_;
-
+        //std::cout<<"exit parallel\n";
 
 
 

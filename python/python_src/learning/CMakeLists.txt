@@ -11,6 +11,7 @@ add_library( _learning SHARED  py_learning.cxx
     py_compare.cxx
     py_gt_helper.cxx
     py_voxel_prediction_tools.cxx
+    py_voxel_prediction_features.cxx
     #py_patch_rf.cxx
 )
 

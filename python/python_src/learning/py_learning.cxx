@@ -27,6 +27,7 @@ void export_compare();
 void export_gt_helper();
 void export_patch_rf();
 void export_voxel_prediction_tools();
+void export_voxel_prediction_features();
 
 // export my module
 BOOST_PYTHON_MODULE_INIT(_learning) {
@@ -43,5 +44,6 @@ BOOST_PYTHON_MODULE_INIT(_learning) {
     export_compare();
     export_gt_helper();
     export_voxel_prediction_tools();
+    export_voxel_prediction_features();
     //export_patch_rf();
 }

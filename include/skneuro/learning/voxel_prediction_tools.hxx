@@ -54,6 +54,41 @@ namespace skneuro{
     }
 
 
+    template<class T,class C, class SET_TYPE>
+    vigra::UInt32 countLabelsAndFindRoi(
+        const vigra::MultiArrayView<3, T> & labelVolume,
+        const SET_TYPE & labels,
+        vigra::TinyVector<C, 3 > & roiBegin,
+        vigra::TinyVector<C, 3 > & roiEnd
+    ){
+        typedef vigra::TinyVector<C, 3 > Coord;
+
+        roiEnd = Coord(0);
+        roiBegin = labelVolume.shape();    
+
+        vigra::UInt32 lCount = 0;
+        Coord c;
+        for(c[0]=0; c[0]<labelVolume.shape(0); ++c[0])
+        for(c[1]=0; c[1]<labelVolume.shape(1); ++c[1])
+        for(c[2]=0; c[2]<labelVolume.shape(2); ++c[2]){
+            const T l(labelVolume[c]);
+            if(l!=0){
+                if(labels.find(l)!=labels.end()){
+                    for(int d=0; d<3; ++d){
+                        roiBegin[d] = std::min(roiBegin[d],c[d]);
+                        roiEnd[d] = std::max(roiEnd[d],c[d]);
+                    }
+                    ++lCount;
+                }
+            }
+        }
+        roiEnd+=Coord(1);
+        return lCount;
+    }
+
+
+
+
     template<class T, class L>
     void remapLabels(
         vigra::MultiArrayView<3, T> & labelVolume,

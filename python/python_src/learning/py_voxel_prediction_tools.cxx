@@ -79,6 +79,26 @@ vigra::UInt32 countLabels(
 
 
 template<class T>
+bp::tuple countLabelsAndFindRoi(
+    const vigra::NumpyArray<3, T> & labelVolume,
+    const vigra::NumpyArray<1, vigra::UInt32> & labels
+){
+    std::set<vigra::UInt32> lset(labels.begin(), labels.end());
+
+    vigra::TinyVector<Int32, 3 >  roiBegin;
+    vigra::TinyVector<Int32, 3 >  roiEnd;
+
+    vigra::UInt32 c = 0;
+    {
+        vigra::PyAllowThreads _pythread;
+        c = skneuro::countLabelsAndFindRoi(labelVolume,lset,roiBegin,roiEnd);
+    }
+    return bp::make_tuple(c,roiBegin,roiEnd);
+}
+
+
+
+template<class T>
 void remapLabels(
     vigra::NumpyArray<3, T> labelVolume,
     const vigra::NumpyArray<1, vigra::UInt32> & rLabels
@@ -118,6 +138,12 @@ void export_voxel_prediction_tools_t(){
         )
     );
     bp::def("countLabels",vigra::registerConverters(&countLabels<T>),
+        (
+            bp::arg("array"),
+            bp::arg("labels")
+        )
+    );
+    bp::def("countLabelsAndFindRoi",vigra::registerConverters(&countLabelsAndFindRoi<T>),
         (
             bp::arg("array"),
             bp::arg("labels")

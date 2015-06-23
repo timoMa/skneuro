@@ -423,29 +423,28 @@ struct BlockUpdate{
         vigra::gaussianDivergenceMultiArray(flux, divergence, param_.sigmaStep_*0.5);
 
 
-        if(false){
-            const std::vector<Block> & volumeBorderBlocks = blocking_.volumeBorderBlocks();
-            const Block borderBlock = block_.border();
-            if(blocking_.containsVolumeBorder(block_.border())){
-                //std::cout<<"B\n";
-                for(size_t vbb=0; vbb<volumeBorderBlocks.size(); ++vbb){
-                    const Block & volBBlock = volumeBorderBlocks[vbb];
-                    Block iblock = volBBlock & borderBlock;
-                    if(!iblock.isEmpty()){
-                        iblock-=borderBlock.begin();
-
-                        vigra::MultiArrayView<DIM, GradVec > zFlux = 
-                            flux.subarray(iblock.begin(), iblock.end());
-                        //zFlux = GradVec(0.0);
-                    }
-                    else{
-                    }
-                }
-            }
-            else{
-                //std::cout<<"I\n";
-            }
-        }
+       //if(false){
+       //    const std::vector<Block> & volumeBorderBlocks = blocking_.volumeBorderBlocks();
+       //    const Block borderBlock = block_.border();
+       //    if(blocking_.containsVolumeBorder(block_.border())){
+       //        //std::cout<<"B\n";
+       //        for(size_t vbb=0; vbb<volumeBorderBlocks.size(); ++vbb){
+       //            const Block & volBBlock = volumeBorderBlocks[vbb];
+       //            Block iblock = volBBlock & borderBlock;
+       //            if(!iblock.isEmpty()){
+       //                iblock-=borderBlock.begin();
+       //                vigra::MultiArrayView<DIM, GradVec > zFlux = 
+       //                    flux.subarray(iblock.begin(), iblock.end());
+       //                //zFlux = GradVec(0.0);
+       //            }
+       //            else{
+       //            }
+       //        }
+       //    }
+       //    else{
+       //        //std::cout<<"I\n";
+       //    }
+       //}
 
 
 

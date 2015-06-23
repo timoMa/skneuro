@@ -1,8 +1,52 @@
 import vigra
+import h5py
 from vigra import graphs,numpy
 import skneuro.denoising as dn
+import skneuro
 
 
+
+
+
+
+
+
+
+"""
+
+Global Precomputed features
+
+
+- Signed Distance Transform
+
+"""
+
+
+
+def computeGlobalFeatures(pmap, mitoIndex, membraneIndex, visu=True, dsetName='data'):
+
+    f = h5py.File(pmap,'r')
+    raw = f[dsetName][0:300,0:300,300:400,0]
+    pMito = f[dsetName][0:300,0:300,300:400,membraneIndex].astype('float32')
+    pMito-=pMito.min()
+    pMito/=pMito.max()
+
+    bMito = numpy.zeros(pMito.shape, dtype='uint8')
+    bMito[pMito>0.9] = 1
+
+    sdt = vigra.filters.signedDistanceTransform(bMito)
+
+
+    grayData = [
+        (raw,"raw"),
+        (pMito,"pMito"),
+        (bMito,"bMito"),
+        (sdt,"sdt")
+    ]
+    segData  = [
+        #(labels, "labels")
+    ]
+    skneuro.addHocViewer(grayData, segData,visu=visu)
 
 
 
@@ -16,7 +60,7 @@ def post_process_semantic_probs(
     rawData,
     probabilities,
     classMeaning = dict(void=0,membrane=1,membraneBoundary=2,mito=3,mitoBoundary=4,stuff=5),
-    membraneDiameter = 15.0
+    membraneDiameter = 15.0,
     preSmoothPower = 2
 ):
     assert preSmoothPower >= 1

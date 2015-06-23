@@ -195,7 +195,7 @@ def medianGuidedFilter(image,radius,epsilon, guidanceImage=None):
 
 def pmapGapClosing(pmap,strength=5.0, alpha=0.001, t=10, dt=0.1,
                    innerScale = 5.0, outerScale=15.0,
-                   sigmaStep=0.5, C=1.0, m=10, initNoise=0.01,
+                   sigmaStep=0.4, C=0.000001, m=1.0, initNoise=0.0001,
                    renormalize=True, takeMax=True):
     
     def clipOnQuantile(array, ql,qh):
@@ -209,13 +209,16 @@ def pmapGapClosing(pmap,strength=5.0, alpha=0.001, t=10, dt=0.1,
         print out.min(),out.max()
         return out
 
-
+    # invert the pmap bevore diffusion
     pmap = pmap.squeeze()
     shape = pmap.shape
     ndim = pmap.ndim
-    diffused = clipOnQuantile(pmap,0.001,0.999)*255.0
+    
+    #diffused = clipOnQuantile(pmap,0.001,0.999)*255.0
+    diffused = pmap.copy()
     diffused = numpy.array(diffused) + numpy.random.rand(*shape)*initNoise
     #diffused = clipOnQuantile(pmap,0.001,0.999)*255.0
+
 
     param = DiffusionParam()
     param.strength = strength
@@ -230,18 +233,21 @@ def pmapGapClosing(pmap,strength=5.0, alpha=0.001, t=10, dt=0.1,
     param.C = C # if to large no diffusion(??)
     param.m = m
     diffused = numpy.require(diffused,dtype='float32')
+
     if(ndim == 2):
         diffused = diffusion2d(diffused, param)
     else:
         diffused = diffusion3d(diffused, param)
 
-
     if renormalize :
-        out = clipOnQuantile(pmap,0.001,0.999)*255.0
-        diffused = clipOnQuantile(diffused,0.05,0.9)*255.0
-        w=numpy.where(out.view(numpy.ndarray)>diffused.view(numpy.ndarray))
-        out[w] = diffused[w]
-        return out
+        #inImg = clipOnQuantile(pmap,0.001,0.999)
+        diffused = clipOnQuantile(diffused,0.01,0.999)
+
+        #return (inImg + 1.0*diffused )/ 4.0
+
+        #w=numpy.where(out.view(numpy.ndarray)>diffused.view(numpy.ndarray))
+        #out[w] = diffused[w]
+        #return out
 
     return diffused
 

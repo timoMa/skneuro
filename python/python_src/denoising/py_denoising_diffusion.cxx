@@ -85,12 +85,12 @@ void exportDiffusion(){
         )
     );
 
-    bp::def("diffusion2dc",vigra::registerConverters(&pyDiffusion<2,vigra::TinyVector<float, 3> >),
-        (
-            bp::arg("image"),
-            bp::arg("param")
-        )
-    );
+    //bp::def("diffusion2dc",vigra::registerConverters(&pyDiffusion<2,vigra::TinyVector<float, 3> >),
+    //    (
+    //        bp::arg("image"),
+    //        bp::arg("param")
+    //    )
+    //);
 
     
 }

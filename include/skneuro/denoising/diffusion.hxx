@@ -315,15 +315,17 @@ struct BlockUpdate{
     typedef vigra::TinyVector<int, DIM> Shape;
     typedef vigra::MultiBlocking<DIM> BlockingType;
     typedef typename BlockingType::BlockWithBorder BlockWithBorder;
-
+    typedef typename BlockingType::Block Block;
     typedef vigra::TinyVector<double, DIM> GradVec;
 
     BlockUpdate(
         const vigra::MultiArrayView<DIM,T> & img,
+        const BlockingType & blocking,
         const BlockWithBorder &  block,
         const DiffusionParam & param
     )
     :   img_(img),
+        blocking_(blocking),
         block_(block),
         param_(param){
         
@@ -385,6 +387,7 @@ struct BlockUpdate{
         //vigra::gaussianGradientMultiArray(subImg , grad, param_.sigmaStep_);
         MyGrad<T>::op(subImg , grad, param_.sigmaStep_);
 
+        
 
         //std::cout<<"gradient done\n";
         {
@@ -418,6 +421,32 @@ struct BlockUpdate{
         }
         //std::cout<<"divergence\n";
         vigra::gaussianDivergenceMultiArray(flux, divergence, param_.sigmaStep_*0.5);
+
+
+        if(false){
+            const std::vector<Block> & volumeBorderBlocks = blocking_.volumeBorderBlocks();
+            const Block borderBlock = block_.border();
+            if(blocking_.containsVolumeBorder(block_.border())){
+                //std::cout<<"B\n";
+                for(size_t vbb=0; vbb<volumeBorderBlocks.size(); ++vbb){
+                    const Block & volBBlock = volumeBorderBlocks[vbb];
+                    Block iblock = volBBlock & borderBlock;
+                    if(!iblock.isEmpty()){
+                        iblock-=borderBlock.begin();
+
+                        vigra::MultiArrayView<DIM, GradVec > zFlux = 
+                            flux.subarray(iblock.begin(), iblock.end());
+                        //zFlux = GradVec(0.0);
+                    }
+                    else{
+                    }
+                }
+            }
+            else{
+                //std::cout<<"I\n";
+            }
+        }
+
 
 
         //std::cout<<"get views\n";
@@ -510,6 +539,7 @@ struct BlockUpdate{
 
 
     vigra::MultiArrayView<DIM,T> img_;
+    BlockingType blocking_;
     BlockWithBorder block_;
     DiffusionParam param_;
 };  
@@ -522,7 +552,7 @@ void blockwiseDiffusion( vigra::MultiArrayView<DIM,T> & img, const DiffusionPara
     typedef typename BlockingType::BlockWithBorder BlockWithBorder;
     typedef typename BlockingType::BlockWithBorderIter BlockWithBorderIter;
     Shape shape = img.shape();
-    Shape blockShape(DIM==3 ? 100 : 256);
+    Shape blockShape(DIM==3 ? 100 : 50);
     for(size_t d=0; d<DIM; ++d){
         blockShape[d] = std::min(blockShape[d], shape[d]);
     }
@@ -530,7 +560,7 @@ void blockwiseDiffusion( vigra::MultiArrayView<DIM,T> & img, const DiffusionPara
     BlockingType blocking(img.shape(), blockShape);
 
     float t = 0.0f;
-    const int margin = 30;
+    const int margin = param.sigmaTensor2_*3.0;
     while(t < param.maxT_){
 
         
@@ -552,7 +582,7 @@ void blockwiseDiffusion( vigra::MultiArrayView<DIM,T> & img, const DiffusionPara
             #pragma omp for
             for(int i=0 ; i<blocking.numBlocks(); ++i){
                 const BlockWithBorder bwb = iter[i];
-                BlockUpdate<DIM, T> bu(img, bwb, param);
+                BlockUpdate<DIM, T> bu(img,blocking, bwb, param);
                 bu();
             }
         }

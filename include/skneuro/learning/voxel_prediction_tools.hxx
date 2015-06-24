@@ -122,8 +122,10 @@ namespace skneuro{
             const T l(labelVolume(x,y,z));
             if(l!=0){
                 const vigra::UInt32 rl = remapping[l];
+                //std::cout<<"RL "<<rl<<"\n";
                 if(rl!=0){
                     const vigra::UInt32 al = rl -1;
+                    //std::cout<<"l "<<l<<"rl "<<rl<<"al "<<al<<"\n";
                     actualLabels[counter] = al;
                     whereLabels(counter) = Coord(x,y,z);
                     ++counter;

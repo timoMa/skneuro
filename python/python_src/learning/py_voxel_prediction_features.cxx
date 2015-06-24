@@ -44,22 +44,49 @@ vigra::NumpyAnyArray
 computeFeaturesTrain(
     const skneuro::IlastikFeatureOperator & op,
     const vigra::NumpyArray<3, T_IN> & data,
-    const vigra::TinyVector<vigra::UInt32,3> roiBegin,
-    const vigra::TinyVector<vigra::UInt32,3> roiEnd,
+    const vigra::TinyVector<vigra::Int32,3> roiBegin,
+    const vigra::TinyVector<vigra::Int32,3> roiEnd,
     const vigra::NumpyArray<1, vigra::TinyVector<vigra::UInt32,3 > > & whereGt,
     vigra::NumpyArray<2, T_OUT> features
 ){
     typedef typename vigra::NumpyArray<2, T_OUT>::difference_type Shape2;
-    features.reshapeIfEmpty(Shape2(whereGt.shape(0), op.nFeatures()));
+    features.reshapeIfEmpty(Shape2(op.nFeatures(),whereGt.shape(0)));
     {
+        vigra::TinyVector<vigra::UInt32,3> roiBegin_(roiBegin);
+        vigra::TinyVector<vigra::UInt32,3> roiEnd_(roiEnd);
         vigra::PyAllowThreads _pythread;
-        op.computeFeaturesTrain(data,roiBegin,roiEnd, whereGt, features);
+        op.computeFeaturesTrain(data,roiBegin_,roiEnd_, whereGt, features);
     }
 
     return features;
 }
 
 
+template<class T_IN, class T_OUT>
+vigra::NumpyAnyArray
+computeFeaturesTest(
+    const skneuro::IlastikFeatureOperator & op,
+    const vigra::NumpyArray<3, T_IN> & data,
+    const vigra::TinyVector<vigra::Int32,3> roiBegin,
+    const vigra::TinyVector<vigra::Int32,3> roiEnd,
+    vigra::NumpyArray<4, T_OUT> features
+){
+    typedef typename vigra::NumpyArray<4, T_OUT>::difference_type Shape4;
+    Shape4 shape4;
+    shape4[0] = op.nFeatures();
+    for(size_t d=0; d<3;++d){
+        shape4[d+1] = roiEnd[d] - roiBegin[d];
+    }
+    features.reshapeIfEmpty(shape4);
+    {
+        vigra::TinyVector<vigra::UInt32,3> roiBegin_(roiBegin);
+        vigra::TinyVector<vigra::UInt32,3> roiEnd_(roiEnd);
+        vigra::PyAllowThreads _pythread;
+        op.computeFeaturesTest(data,roiBegin_,roiEnd_,features);
+    }
+
+    return features;
+}
 
 
 
@@ -71,12 +98,20 @@ void export_voxel_prediction_features(){
         .def("margin", &FeatOp::margin)
         .def("nFeatures", &FeatOp::nFeatures)
         ///
-        .def("train",vigra::registerConverters(&computeFeaturesTrain<float,float> ),
+        .def("trainFeatures",vigra::registerConverters(&computeFeaturesTrain<float,float> ),
             (
                 bp::arg("array"),
                 bp::arg("roiBegin"),
                 bp::arg("roiEnd"),
                 bp::arg("whereGt"),
+                bp::arg("out") = bp::object()
+            )
+        )
+        .def("testFeatures",vigra::registerConverters(&computeFeaturesTest<float,float> ),
+            (
+                bp::arg("array"),
+                bp::arg("roiBegin"),
+                bp::arg("roiEnd"),
                 bp::arg("out") = bp::object()
             )
         )

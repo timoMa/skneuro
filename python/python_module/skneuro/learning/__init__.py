@@ -5,6 +5,40 @@ from ..parallel import arrayMinMax
 import vigra
 from vigra import graphs 
 from super_rf import *
+import numbers
+
+
+
+class IlastikFeatureOperator(RawIlastikFeatureOperator):
+    def __init__(self,
+        sigmas = [0.3, 0.7, 1, 1.6, 3.5, 5.0, 10.0],
+        smooth = 1,
+        laplacian = 1,
+        gradMag = 1,
+        stEigeValS2 = 1,
+        stEigeValS4 = 1,
+        hessianEigenVal = 1
+    ):
+        
+        nScales = len(sigmas)
+        nFeatTypes = 6
+
+        # build use feature matrix
+        featureSelection = numpy.zeros([nScales, nFeatTypes],dtype='bool')
+
+        
+        featureSelection[:,0] = smooth
+        featureSelection[:,1] = laplacian
+        featureSelection[:,2] = gradMag
+        featureSelection[:,3] = stEigeValS2
+        featureSelection[:,4] = stEigeValS4
+        featureSelection[:,5] = hessianEigenVal
+
+        super(IlastikFeatureOperator,self).__init__(sigmas=sigmas,
+                                                    featureSelection=featureSelection)
+        print "margin",self.margin()
+
+
 
 def accumulatorOptions(select = None, edgeFeatures=True, nodeFeatures=True,
                        sigmaHist = 1.5, nBins = 20, histMin=None, histMax=None):

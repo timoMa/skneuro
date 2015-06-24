@@ -87,6 +87,78 @@ namespace skneuro{
     };
     
 
+    template<class T>
+    void structureTensorAndGradientMagnitude(
+        vigra::MultiArrayView<3, T>                          data,
+        vigra::MultiArrayView<3, T >                       & gradientMagnitude,
+        vigra::MultiArrayView<3, vigra::TinyVector<T, 6> > & structureTensor,
+        const vigra::ConvolutionOptions<3> & convOpts
+    ){
+        typedef vigra::ConvolutionOptions<3> Opts;
+        typedef typename  Opts::Shape Shape;
+
+        const auto roi = convOpts.getSubarray();
+        const auto & roiBegin = roi.first;
+        const auto & roiEnd = roi.second;
+
+
+        // gradient 
+        const auto & outerScale =  convOpts.getOuterScale();
+        Shape convMargin;
+        Shape gradRoiBegin = roiBegin;
+        Shape gradRoiEnd = roiEnd;
+        for(size_t d=0; d<3; ++d){
+            convMargin = int(outerScale[d]*3.0+0.5);
+        }  
+
+        gradRoiBegin-=convMargin;
+        gradRoiEnd  +=convMargin;
+        for(size_t d=0; d<3; ++d){
+            gradRoiBegin[d] = std::max(vigra::Int64(0),vigra::Int64(gradRoiBegin[d]));
+            gradRoiEnd[d] = std::min(data.shape(d),gradRoiEnd[d]);
+        } 
+
+        Opts convOptsGrad = convOpts;
+        convOptsGrad.subarray(gradRoiBegin, gradRoiEnd);
+        vigra::MultiArray<3,  vigra::TinyVector<T, 3> > gradWithMargin(gradRoiEnd-gradRoiBegin);
+
+        // call actual gradient computing function
+        vigra::gaussianGradientMultiArray(data, gradWithMargin, convOptsGrad);
+
+        // make tensor from image
+        vigra::MultiArray<3,  vigra::TinyVector<T, 6> > gradientTensor(gradRoiEnd-gradRoiBegin);
+        vigra::transformMultiArray(gradWithMargin,gradientTensor, 
+                                  vigra::detail::StructurTensorFunctor<3, vigra::TinyVector<T, 6> >());
+
+
+
+        const Shape newRoiBegin = roiBegin - gradRoiBegin;
+        const Shape newRoiEnd  = roiEnd - gradRoiBegin;
+        Opts convOptSmooth = convOpts;
+        convOptSmooth.subarray(newRoiBegin, newRoiEnd);
+        convOptSmooth.stdDev(convOpts.getOuterScale());
+        vigra::gaussianSmoothMultiArray(gradientTensor, structureTensor, 
+                                        convOptSmooth);
+
+
+        // fetch the grad subarray
+        auto subGrad = gradWithMargin.subarray(newRoiBegin,newRoiEnd);
+
+        {
+            using namespace vigra::multi_math;
+            const auto gx = subGrad.bindElementChannel(0);
+            const auto gy = subGrad.bindElementChannel(1);
+            const auto gz = subGrad.bindElementChannel(2);
+            gradientMagnitude = gx*gx + gy*gy + gz*gz;
+        }
+
+
+        //vigra::gaussianGradientMultiArray(data, gradient,  convOpts);
+        //vigra::ConvolutionOptions<3> &
+        //vigra::transformMultiArray(gradient,vigra::detail::StructurTensorFunctor<3, T>());
+    }
+
+
     
     class IlastikFeatureOperator{
 
@@ -94,12 +166,13 @@ namespace skneuro{
         typedef  vigra::ConvolutionOptions<3> ConvOpts;
 
         static const size_t NFeatFunc = 6;
-        enum class UseFeatFunc: size_t{
+        typedef vigra::TinyVector<bool,NFeatFunc> UseSigma;
+        enum class FuncIndex: size_t{
             GaussianSmoothing             = 0, 
             LaplacianOfGaussian           = 1, 
             GaussianGradientMagnitude     = 2, 
-            DifferenceOfGaussians         = 3, 
-            StructureTensorEigenvalues    = 4, 
+            StructureTensorEigenvaluesS2  = 3, 
+            StructureTensorEigenvaluesS4  = 4, 
             HessianOfGaussianEigenvalues  = 5
         };
 
@@ -107,22 +180,53 @@ namespace skneuro{
         typedef vigra::TinyVector<vigra::UInt32, 3> Coord;
         typedef vigra::MultiArrayView<4, float> Shape4;
         IlastikFeatureOperator(
-
+            const std::vector<float> & sigmas,
+            const vigra::MultiArrayView<2, bool> & featureSelection
         )
-        : sigmas_({0.7, 1, 1.6, 3.5, 5.0, 10.0}){
+        :   sigmas_(sigmas),
+            featureSelection_(featureSelection),
+            nFeatures_(0){
+
+            nFeatures_ += featureSelection_.bindOuter(size_t(FuncIndex::GaussianSmoothing)).sum<size_t>();
+            nFeatures_ += featureSelection_.bindOuter(size_t(FuncIndex::LaplacianOfGaussian)).sum<size_t>();
+            nFeatures_ += featureSelection_.bindOuter(size_t(FuncIndex::GaussianGradientMagnitude)).sum<size_t>();
+            nFeatures_ += 3*featureSelection_.bindOuter(size_t(FuncIndex::StructureTensorEigenvaluesS2)).sum<size_t>();
+            nFeatures_ += 3*featureSelection_.bindOuter(size_t(FuncIndex::StructureTensorEigenvaluesS4)).sum<size_t>();
+            nFeatures_ += 3*featureSelection_.bindOuter(size_t(FuncIndex::HessianOfGaussianEigenvalues)).sum<size_t>();
+
+            maxSigma_ = 0.0;
+            for(size_t si=0; si<sigmas.size(); ++si){
+                if(featureSelection_(si,size_t(FuncIndex::GaussianSmoothing))){
+                    maxSigma_ = std::max(sigmas_[si],maxSigma_);
+                }
+                if(featureSelection_(si,size_t(FuncIndex::LaplacianOfGaussian))){
+                    maxSigma_ = std::max(sigmas_[si],maxSigma_);
+                }
+                if(featureSelection_(si,size_t(FuncIndex::GaussianGradientMagnitude))){
+                    maxSigma_ = std::max(sigmas_[si],maxSigma_);
+                }
+                if(featureSelection_(si,size_t(FuncIndex::StructureTensorEigenvaluesS2))){
+                    maxSigma_ = std::max(2.0f*sigmas_[si],maxSigma_);
+                }
+                if(featureSelection_(si,size_t(FuncIndex::StructureTensorEigenvaluesS4))){
+                    maxSigma_ = std::max(4.0f*sigmas_[si],maxSigma_);
+                }
+                if(featureSelection_(si,size_t(FuncIndex::HessianOfGaussianEigenvalues))){
+                    maxSigma_ = std::max(sigmas_[si],maxSigma_);
+                }
+            }
 
         }
 
 
         vigra::TinyVector<int,3> margin()const{
-            const double s = sigmas_.back();
-            int w = static_cast<int>(3.0*s + 1.5 + 0.5);
+            int w = static_cast<int>(3.0*maxSigma_ + 1.5 + 0.5);
             return vigra::TinyVector<int,3>(w);
 
         }
 
         size_t nFeatures()const{
-            return 6*sigmas_.size();
+            return nFeatures_;
         }
 
         template<class T_IN, class T_OUT>
@@ -162,11 +266,13 @@ namespace skneuro{
             //feature out type
             typedef typename EXTRACTOR::value_type FType;
 
-
             // single buffer for gaussian
             float currentSigma = 0;
             vigra::MultiArray<3, FType>  gaussSmoothed(data);
 
+
+            typedef vigra::TinyVector<FType, 3> TV3;
+            vigra::MultiArray<3, TV3>  gradient(data.shape());
 
             vigra::MultiArray<3, FType>  scalarCoreBuffer(roiEnd-roiBegin);
             typedef vigra::TinyVector<FType, 6> TV6;
@@ -189,9 +295,13 @@ namespace skneuro{
                 // gaussian pre smoothing (inplace)
                 ///////////////////////////////////
                 //std::cout<<"presmooth\n";
-                vigra::gaussianSmoothMultiArray(gaussSmoothed,gaussSmoothed,
-                    ConvOpts().stdDev(sigmaPresmooth).resolutionStdDev(currentSigma));
+                if(sigmaPresmooth>currentSigma){
+                    vigra::gaussianSmoothMultiArray(gaussSmoothed,gaussSmoothed,
+                        ConvOpts().stdDev(sigmaPresmooth).resolutionStdDev(currentSigma));
 
+                    // remember current sigma
+                    currentSigma = sigmaPresmooth;
+                }
 
                 /////////////////////////////////
                 // filters on pre-smoothed
@@ -199,37 +309,65 @@ namespace skneuro{
                 ConvOpts  opts = ConvOpts().stdDev(desiredSigma).resolutionStdDev(sigmaPresmooth).subarray(roiBegin,roiEnd);
 
                 // LaplacianOfGaussian
-                //std::cout<<"laplacianOfGaussian\n";
-                vigra::laplacianOfGaussianMultiArray(gaussSmoothed, scalarCoreBuffer, opts);
-                // ==> store feature
-                extractor.store(scalarCoreBuffer);
+                if(featureSelection_(si,size_t(FuncIndex::LaplacianOfGaussian))){
+                    
+                    vigra::laplacianOfGaussianMultiArray(gaussSmoothed, scalarCoreBuffer, opts);
+                    extractor.store(scalarCoreBuffer);
+                }
 
-                // GaussianGradientMagnitude
-                //std::cout<<"gaussianGradientMagnitude\n";
-                vigra::gaussianGradientMagnitude(gaussSmoothed, scalarCoreBuffer, opts);
-                // ==> store feature
-                extractor.store(scalarCoreBuffer);
-
-
-                
-
-                // others
+ 
                 // HessianOfGaussian
-                vigra::hessianOfGaussianMultiArray(gaussSmoothed, core6Buffer, opts); 
-                vigra::tensorEigenvaluesMultiArray(core6Buffer, core3Buffer);
-                extractor.store(core3Buffer);
+                if(featureSelection_(si,size_t(FuncIndex::HessianOfGaussianEigenvalues))){
+                    vigra::hessianOfGaussianMultiArray(gaussSmoothed, core6Buffer, opts); 
+                    vigra::tensorEigenvaluesMultiArray(core6Buffer, core3Buffer);
+                    extractor.store(core3Buffer);
+                }
 
+                if(false){
+                    // new structureTensorAndGradientMagnitude
+                    structureTensorAndGradientMagnitude(gaussSmoothed, scalarCoreBuffer, core6Buffer,
+                        ConvOpts().stdDev(desiredSigma).resolutionStdDev(sigmaPresmooth)
+                                  .subarray(roiBegin,roiEnd).outerScale(desiredSigma*2.0)            
+                    );   
+                    extractor.store(scalarCoreBuffer); // squared gradient magnitude
+                    vigra::tensorEigenvaluesMultiArray(core6Buffer, core3Buffer);
+                    extractor.store(core3Buffer);         
+                }
+                if(true){
+                    // GaussianGradientMagnitude
+                    vigra::gaussianGradientMagnitude(gaussSmoothed, scalarCoreBuffer, opts);
+                    extractor.store(scalarCoreBuffer);
 
+                    // Structure Tensor sigma*2
+                    if(featureSelection_(si,size_t(FuncIndex::StructureTensorEigenvaluesS2))){
+                        vigra::structureTensorMultiArray(gaussSmoothed, core6Buffer,
+                            ConvOpts().stdDev(desiredSigma).resolutionStdDev(sigmaPresmooth)
+                                      .subarray(roiBegin,roiEnd).outerScale(desiredSigma*2.0)
+                        ); 
+                        vigra::tensorEigenvaluesMultiArray(core6Buffer, core3Buffer);
+                        extractor.store(core3Buffer);
+                    }
+                    // Structure Tensor sigma*4
+                    if(featureSelection_(si,size_t(FuncIndex::StructureTensorEigenvaluesS4))){
+                        vigra::structureTensorMultiArray(gaussSmoothed, core6Buffer,
+                            ConvOpts().stdDev(desiredSigma).resolutionStdDev(sigmaPresmooth)
+                                      .subarray(roiBegin,roiEnd).outerScale(desiredSigma*4.0)
+                        ); 
+                        vigra::tensorEigenvaluesMultiArray(core6Buffer, core3Buffer);
+                        extractor.store(core3Buffer);
+                    }
+                }
+                
                 // GaussianSmoothing
-                //std::cout<<"gaussianSmoothMultiArray\n";
-                vigra::gaussianSmoothMultiArray(gaussSmoothed, gaussSmoothed,
-                    ConvOpts().stdDev(desiredSigma).resolutionStdDev(sigmaPresmooth)
-                );
-                // ==> store feature
-                extractor.store(gaussSmoothed.subarray(roiBegin,roiEnd));
+                if(featureSelection_(si,size_t(FuncIndex::GaussianSmoothing))){
+                    vigra::gaussianSmoothMultiArray(gaussSmoothed, gaussSmoothed,
+                        ConvOpts().stdDev(desiredSigma).resolutionStdDev(sigmaPresmooth)
+                    );
+                    extractor.store(gaussSmoothed.subarray(roiBegin,roiEnd));
 
-                // remember current sigma
-                currentSigma = desiredSigma;
+                    // remember current sigma
+                    currentSigma = desiredSigma;
+                }
 
             }
         }
@@ -238,7 +376,9 @@ namespace skneuro{
 
     private:
         std::vector<float> sigmas_;
-        vigra::MultiArray<1, vigra::TinyVector<bool,NFeatFunc> > useFeature_;
+        vigra::MultiArray<2, bool> featureSelection_;
+        size_t nFeatures_;
+        float maxSigma_;
     };
 
 

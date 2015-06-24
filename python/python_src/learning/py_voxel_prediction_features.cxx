@@ -31,6 +31,7 @@
 #include <boost/python/stl_iterator.hpp>
 
 #include <skneuro/learning/voxel_prediction_feature_operator.hxx>
+#include <boost/python/stl_iterator.hpp> 
 
 namespace bp = boost::python;
 
@@ -79,9 +80,9 @@ computeFeaturesTest(
     }
     features.reshapeIfEmpty(shape4);
     {
+        vigra::PyAllowThreads _pythread;
         vigra::TinyVector<vigra::UInt32,3> roiBegin_(roiBegin);
         vigra::TinyVector<vigra::UInt32,3> roiEnd_(roiEnd);
-        vigra::PyAllowThreads _pythread;
         op.computeFeaturesTest(data,roiBegin_,roiEnd_,features);
     }
 
@@ -90,13 +91,50 @@ computeFeaturesTest(
 
 
 
+
+skneuro::IlastikFeatureOperator * ilastikFeatOpConstructor(
+    bp::object sigmasBp,
+    vigra::NumpyArray<2, bool> featureSelection 
+){
+    typedef skneuro::IlastikFeatureOperator FeatOp;
+    typedef typename FeatOp::UseSigma UseSigma;
+
+    std::vector<float> sigma;
+    {
+        bp::stl_input_iterator<float> begin(sigmasBp), end;
+        sigma.assign(begin,end); 
+    }
+
+
+
+    std::vector<UseSigma> useSigmaVec(FeatOp::NFeatFunc);
+
+    FeatOp * op;
+    {
+        vigra::PyAllowThreads _pythread;
+        op = new FeatOp(sigma,featureSelection);
+    }
+    return op;
+
+}
+
+
 void export_voxel_prediction_features(){
 
     typedef skneuro::IlastikFeatureOperator FeatOp;
 
-    bp::class_<FeatOp>("IlastikFeatureOperator",bp::init<>())
+    bp::class_<FeatOp>("RawIlastikFeatureOperator",bp::no_init)
         .def("margin", &FeatOp::margin)
         .def("nFeatures", &FeatOp::nFeatures)
+        .def("__init__", 
+            bp::make_constructor(vigra::registerConverters(&ilastikFeatOpConstructor),bp::default_call_policies(),
+                (
+
+                    bp::arg("sigmas"),
+                    bp::arg("featureSelection")
+                )
+            )
+        )
         ///
         .def("trainFeatures",vigra::registerConverters(&computeFeaturesTrain<float,float> ),
             (

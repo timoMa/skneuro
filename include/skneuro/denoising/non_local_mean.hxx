@@ -20,8 +20,8 @@
 /************************************************************************/
 
 
-#ifndef VIGRA_NON_LOCAL_MEAN
-#define VIGRA_NON_LOCAL_MEAN
+#ifndef SKNEURO_NON_LOCAL_MEAN
+#define SKNEURO_NON_LOCAL_MEAN
 
 
 /*std*/

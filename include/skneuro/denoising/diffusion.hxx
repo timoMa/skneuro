@@ -1,3 +1,6 @@
+#ifndef SKNEURO_DIFFUSION_FILTER_HXX
+#define SKNEURO_DIFFUSION_FILTER_HXX
+
 #include <vigra/multi_convolution.hxx>
 #include <vigra/convolution.hxx>
 #include <vigra/tinyvector.hxx>
@@ -604,3 +607,6 @@ void blockwiseDiffusion( vigra::MultiArrayView<DIM,T> & img, const DiffusionPara
 
 
 }
+
+
+#endif //SKNEURO_DIFFUSION_FILTER_HXX

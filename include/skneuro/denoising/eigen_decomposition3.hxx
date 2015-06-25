@@ -1,3 +1,7 @@
+#ifndef SKNEURO_IIR_GAUSSIAN_EIGEN_DECOMPOSITION_HXX
+#define SKNEURO_IIR_GAUSSIAN_EIGEN_DECOMPOSITION_HXX
+
+
 #include "math.h"
 
 #ifdef MAX____
@@ -22,7 +26,7 @@
 inline double hypot2(double x, double y) { return sqrt(x*x+y*y); }
 
 /* Symmetric Householder reduction to tridiagonal form. */
-void tred2(double V[n___][n___], double d[n___], double e[n___]) {
+inline void tred2(double V[n___][n___], double d[n___], double e[n___]) {
     
 /*  This is derived from the Algol procedures tred2 by */
 /*  Bowdler, Martin, Reinsch, and Wilkinson, Handbook for */
@@ -209,7 +213,7 @@ static void tql2(double V[n___][n___], double d[n___], double e[n___]) {
 
 
 
-void roots3(double d[3], double c0,double c1, double c2)
+inline void roots3(double d[3], double c0,double c1, double c2)
 {
     double c2Div3, aDiv3, mbDiv2, q, magnitude, angle, cs, sn;
     
@@ -229,7 +233,7 @@ void roots3(double d[3], double c0,double c1, double c2)
     d[2] = c2Div3 - magnitude*(cs - root3*sn);
 }   
 
-int fast_eigen3x3(double A[3][3], double V[3][3], double d[3])
+inline int fast_eigen3x3(double A[3][3], double V[3][3], double d[3])
 {
     const double smallv=1e-12;
     double c0, c1,c2;
@@ -306,7 +310,7 @@ int fast_eigen3x3(double A[3][3], double V[3][3], double d[3])
     return 1;
 }
 
-void eigen_decomposition(double A[n___][n___], double V[n___][n___], double d[n___]) {
+inline void eigen_decomposition(double A[n___][n___], double V[n___][n___], double d[n___]) {
     double e[n___];
     double da[3];
     double dt, dat;
@@ -348,3 +352,4 @@ void eigen_decomposition(double A[n___][n___], double V[n___][n___], double d[n_
 
 
 
+#endif

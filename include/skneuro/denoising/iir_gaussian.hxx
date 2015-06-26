@@ -128,22 +128,24 @@ void gaussianiir3dImpl(float *volume, long width, long height, long depth, float
 
 void gaussianIIR(vigra::MultiArrayView<3, float> & data, float sigma, int numsteps){
     // assert that not strided
-
-    std::cout<<" 1,0,0 "<< &data(1,0,0) - &data(0,0,0) <<"\n";
-    std::cout<<" 0,1,0 "<< &data(0,1,0) - &data(0,0,0) <<"\n";
-    std::cout<<" 0,0,1 "<< &data(0,0,1) - &data(0,0,0) <<"\n";
-
-    //if( data.size() != 
-    //    (&data(data.size()-1) - &data(0))  + 1 
-    //)
-    //{
-    //    std::cout<<"data.size() "<<data.size()<<"\n";
-    //    std::cout<<"address diff "<<(&data(data.size()-1) - &data(0))   <<"\n";
-    //    throw std::runtime_error("must be dense");
+    //vigra::TinyVector<vigra::MultiArrayIndex,3> strides(
+    //    &data(1,0,0) - &data(0,0,0),
+    //    &data(0,1,0) - &data(0,0,0),
+    //    &data(0,0,1) - &data(0,0,0)
+    //);
+//
+    //vigra::TinyVector<vigra::MultiArrayIndex,3> shouldStrides(
+    //    1, data.shape(0), data.shape(0)*data.shape(1)
+    //);
+//
+    //if((strides!=shouldStrides).any()){
+    //    vigra::MultiArray<float, 3> denseData(data);
+    //    gaussianiir3dImpl(&denseData(0), denseData.shape(0), denseData.shape(1), denseData.shape(2), sigma, numsteps);
+    //    data = denseData;
     //}
-
-
-    gaussianiir3dImpl(&data(0), data.shape(0), data.shape(1), data.shape(2), sigma, numsteps);
+    //else{
+        gaussianiir3dImpl(&data(0), data.shape(0), data.shape(1), data.shape(2), sigma, numsteps);
+    //}
 }
 
 

@@ -14,9 +14,10 @@
 #include <vigra/accumulator.hxx>
 #include <vigra/multi_convolution.hxx>
 #include <vigra/multi_tensorutilities.hxx>
-
-
+#include <vigra/slic.hxx>
+#include <vigra/accumulator.hxx>
 #include <omp.h>
+
 namespace skneuro{
 
     template<class T_OUT>
@@ -48,7 +49,7 @@ namespace skneuro{
                 for(size_t f=0; f<NC; ++f)
                     features_(fIndex_+f, inst) = tv[f];
             }
-            ++fIndex_;
+            fIndex_+=NC;
         }
 
         const vigra::MultiArrayView<1, vigra::TinyVector<vigra::UInt32, 3> > & whereGt_;
@@ -77,8 +78,8 @@ namespace skneuro{
         template<int NC>
         void store(const vigra::MultiArrayView<3, vigra::TinyVector<T_OUT, NC> > & featureImg){
             for(size_t f=0; f<NC; ++f)
-                features_.bindInner(fIndex_) = featureImg.bindElementChannel(f);
-            ++fIndex_;
+                features_.bindInner(fIndex_+f) = featureImg.bindElementChannel(f);
+            fIndex_+=NC;
         }
 
 
@@ -239,7 +240,6 @@ namespace skneuro{
         )const{
                 
             // allocate buffer
-            
             ExtractTrain<T_OUT> extractor(whereGt, features);
             this->computeFeatures(data, roiBegin, roiEnd, extractor);
         }
@@ -335,8 +335,10 @@ namespace skneuro{
                 }
                 if(true){
                     // GaussianGradientMagnitude
-                    vigra::gaussianGradientMagnitude(gaussSmoothed, scalarCoreBuffer, opts);
-                    extractor.store(scalarCoreBuffer);
+                    if(featureSelection_(si,size_t(FuncIndex::GaussianGradientMagnitude))){
+                        vigra::gaussianGradientMagnitude(gaussSmoothed, scalarCoreBuffer, opts);
+                        extractor.store(scalarCoreBuffer);
+                    }
 
                     // Structure Tensor sigma*2
                     if(featureSelection_(si,size_t(FuncIndex::StructureTensorEigenvaluesS2))){
@@ -382,34 +384,99 @@ namespace skneuro{
     };
 
 
-    
+    class SlicFeatureOp{
 
-    /*
+    public:
+        typedef  vigra::ConvolutionOptions<3> ConvOpts;
+        typedef vigra::TinyVector<vigra::UInt32, 3> Coord;
+        typedef vigra::MultiArrayView<4, float> Shape4;
+        SlicFeatureOp(
+            const std::vector<unsigned int> & seedDistances = {5,10, 15},
+            const std::vector<double> & intensityScalings = {10.0, 20.0, 30.0}
+        )
+        :    seedDistances_(seedDistances),
+             intensityScalings_(intensityScalings)
+        {
 
-        0 'GaussianSmoothing' 
-        1 'LaplacianOfGaussian'
-        2 'GaussianGradientMagnitude'
-        3 'DifferenceOfGaussians'
-        4 'StructureTensorEigenvalues'
-        5 'HessianOfGaussianEigenvalues'
+
+        }
 
 
+        vigra::TinyVector<int,3> margin()const{
+            return vigra::TinyVector<int,3>(seedDistances_.back()*2+3);
+        }
 
-        
+        size_t nFeatures()const{
+            return seedDistances_.size()*intensityScalings_.size();
+        }
+
+        template<class T_IN, class T_OUT>
+        void computeFeaturesTrain(
+            const vigra::MultiArrayView<3, T_IN> & data,
+            const Coord & roiBegin,
+            const Coord & roiEnd,
+            const vigra::MultiArrayView<1, vigra::TinyVector<vigra::UInt32, 3> > & whereGt,
+            vigra::MultiArrayView<2, T_OUT> & features
+        )const{
+                
+            // allocate buffer
+            ExtractTrain<T_OUT> extractor(whereGt, features);
+            this->computeFeatures(data, roiBegin, roiEnd, extractor);
+        }
+
+        template<class T_IN, class T_OUT>
+        void computeFeaturesTest (
+            const vigra::MultiArrayView<3, T_IN> & data,
+            const Coord & roiBegin,
+            const Coord & roiEnd,
+            vigra::MultiArrayView<4, T_OUT> & features
+        )const{
+            ExtractTest<T_OUT> extractor(features);
+            this->computeFeatures(data, roiBegin, roiEnd, extractor);
+        }
 
 
-        gauss,
-        *gradient(gaussian), 
-        -gradientMagnitude(gradient)
-        -laplacianOfGaussian(gaussian),
-        *hessianOfGaussian(???)
-        -hogEV
-        -hogDET
-        -hogTRACE
-        *StructureTensor
-        *stEVEC
-        -stEV
-    */
+        template<class T_IN, class EXTRACTOR>
+        void computeFeatures(
+            const vigra::MultiArrayView<3, T_IN> & data,
+            const Coord & roiBegin,
+            const Coord & roiEnd,
+            EXTRACTOR & extractor
+        )const{
+
+            vigra::MultiArray<3, vigra::UInt32>  labelBuffer(data.shape());
+            vigra::MultiArray<3, float>  valueBuffer(data.shape());
+            for(size_t sdi=0; sdi<seedDistances_.size(); ++sdi){
+                const unsigned int seedDist = seedDistances_[sdi];
+                for(size_t isi=0; isi<intensityScalings_.size(); ++isi){
+                    const double intScaling = intensityScalings_[isi];
+
+                    unsigned int maxLabel = vigra::slicSuperpixels(data, labelBuffer, intScaling, seedDist, 
+                                                                   vigra::SlicOptions().iterations(40));
+
+
+                    typedef vigra::acc::Select<vigra::acc::DataArg<1>, vigra::acc::LabelArg<2>, vigra::acc::Mean> Statistics;
+                    typedef vigra::acc::AccumulatorChainArray<vigra::CoupledArrays<3, T_IN, vigra::UInt32 >, Statistics> RegionFeatures;
+                    RegionFeatures clusters_;
+
+                    vigra::acc::extractFeatures(data, labelBuffer, clusters_);
+
+                    for(size_t z=0; z<data.shape(2); ++z)
+                    for(size_t y=0; y<data.shape(1); ++y)
+                    for(size_t x=0; x<data.shape(0); ++x){
+                        valueBuffer(x,y,z) = vigra::acc::get<vigra::acc::Mean>(clusters_,labelBuffer(x,y,z));
+                    }
+
+                    extractor.store(valueBuffer.subarray(roiBegin,roiEnd));
+                }
+            }
+        }
+
+
+    private:
+        std::vector<unsigned int> seedDistances_;  
+        std::vector<double> intensityScalings_;
+    };
 
 }
 

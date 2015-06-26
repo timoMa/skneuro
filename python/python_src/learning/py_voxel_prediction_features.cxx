@@ -40,10 +40,10 @@ namespace bp = boost::python;
 
 
 
-template<class T_IN, class T_OUT>
+template<class OP,class T_IN, class T_OUT>
 vigra::NumpyAnyArray
 computeFeaturesTrain(
-    const skneuro::IlastikFeatureOperator & op,
+    const OP & op,
     const vigra::NumpyArray<3, T_IN> & data,
     const vigra::TinyVector<vigra::Int32,3> roiBegin,
     const vigra::TinyVector<vigra::Int32,3> roiEnd,
@@ -63,10 +63,10 @@ computeFeaturesTrain(
 }
 
 
-template<class T_IN, class T_OUT>
+template<class OP, class T_IN, class T_OUT>
 vigra::NumpyAnyArray
 computeFeaturesTest(
-    const skneuro::IlastikFeatureOperator & op,
+    const OP & op,
     const vigra::NumpyArray<3, T_IN> & data,
     const vigra::TinyVector<vigra::Int32,3> roiBegin,
     const vigra::TinyVector<vigra::Int32,3> roiEnd,
@@ -104,9 +104,6 @@ skneuro::IlastikFeatureOperator * ilastikFeatOpConstructor(
         bp::stl_input_iterator<float> begin(sigmasBp), end;
         sigma.assign(begin,end); 
     }
-
-
-
     std::vector<UseSigma> useSigmaVec(FeatOp::NFeatFunc);
 
     FeatOp * op;
@@ -115,44 +112,94 @@ skneuro::IlastikFeatureOperator * ilastikFeatOpConstructor(
         op = new FeatOp(sigma,featureSelection);
     }
     return op;
-
 }
+
+skneuro::SlicFeatureOp * slicFeatOpConstructor(
+    const vigra::NumpyArray<1, vigra::UInt32> & seedDistances,
+    const vigra::NumpyArray<1, float> & intensityScalings 
+){
+    typedef skneuro::SlicFeatureOp FeatOp;
+
+
+    std::vector<unsigned int> seedDistances_(seedDistances.begin(),seedDistances.end());  
+    std::vector<double> intensityScalings_(intensityScalings.begin(),intensityScalings.end());
+
+    FeatOp * op;
+    {
+        vigra::PyAllowThreads _pythread;
+        op = new FeatOp(seedDistances_,intensityScalings_);
+    }
+    return op;
+}
+
 
 
 void export_voxel_prediction_features(){
 
-    typedef skneuro::IlastikFeatureOperator FeatOp;
 
-    bp::class_<FeatOp>("RawIlastikFeatureOperator",bp::no_init)
-        .def("margin", &FeatOp::margin)
-        .def("nFeatures", &FeatOp::nFeatures)
-        .def("__init__", 
-            bp::make_constructor(vigra::registerConverters(&ilastikFeatOpConstructor),bp::default_call_policies(),
-                (
-
-                    bp::arg("sigmas"),
-                    bp::arg("featureSelection")
+    {
+        typedef skneuro::IlastikFeatureOperator FeatOp;
+        bp::class_<FeatOp>("RawIlastikFeatureOperator",bp::no_init)
+            .def("margin", &FeatOp::margin)
+            .def("nFeatures", &FeatOp::nFeatures)
+            .def("__init__", 
+                bp::make_constructor(vigra::registerConverters(&ilastikFeatOpConstructor),bp::default_call_policies(),
+                    (
+                        bp::arg("sigmas"),
+                        bp::arg("featureSelection")
+                    )
                 )
             )
-        )
-        ///
-        .def("trainFeatures",vigra::registerConverters(&computeFeaturesTrain<float,float> ),
-            (
-                bp::arg("array"),
-                bp::arg("roiBegin"),
-                bp::arg("roiEnd"),
-                bp::arg("whereGt"),
-                bp::arg("out") = bp::object()
+            .def("trainFeatures",vigra::registerConverters(&computeFeaturesTrain<FeatOp,float,float> ),
+                (
+                    bp::arg("array"),
+                    bp::arg("roiBegin"),
+                    bp::arg("roiEnd"),
+                    bp::arg("whereGt"),
+                    bp::arg("out") = bp::object()
+                )
             )
-        )
-        .def("testFeatures",vigra::registerConverters(&computeFeaturesTest<float,float> ),
-            (
-                bp::arg("array"),
-                bp::arg("roiBegin"),
-                bp::arg("roiEnd"),
-                bp::arg("out") = bp::object()
+            .def("testFeatures",vigra::registerConverters(&computeFeaturesTest<FeatOp,float,float> ),
+                (
+                    bp::arg("array"),
+                    bp::arg("roiBegin"),
+                    bp::arg("roiEnd"),
+                    bp::arg("out") = bp::object()
+                )
             )
-        )
-    ;
+        ;
+    }
+    {
+        typedef skneuro::SlicFeatureOp FeatOp;
+        bp::class_<FeatOp>("RawSlicFeatureOp",bp::no_init)
+            .def("margin", &FeatOp::margin)
+            .def("nFeatures", &FeatOp::nFeatures)
+            .def("__init__", 
+                bp::make_constructor(vigra::registerConverters(&slicFeatOpConstructor),bp::default_call_policies(),
+                    (
+                        bp::arg("seedDistances"),
+                        bp::arg("intensityScalings")
+                    )
+                )
+            )
+            .def("trainFeatures",vigra::registerConverters(&computeFeaturesTrain<FeatOp,float,float> ),
+                (
+                    bp::arg("array"),
+                    bp::arg("roiBegin"),
+                    bp::arg("roiEnd"),
+                    bp::arg("whereGt"),
+                    bp::arg("out") = bp::object()
+                )
+            )
+            .def("testFeatures",vigra::registerConverters(&computeFeaturesTest<FeatOp,float,float> ),
+                (
+                    bp::arg("array"),
+                    bp::arg("roiBegin"),
+                    bp::arg("roiEnd"),
+                    bp::arg("out") = bp::object()
+                )
+            )
+        ;
+    }
 
 }

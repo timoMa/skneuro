@@ -36,7 +36,27 @@ class IlastikFeatureOperator(RawIlastikFeatureOperator):
 
         super(IlastikFeatureOperator,self).__init__(sigmas=sigmas,
                                                     featureSelection=featureSelection)
-        print "margin",self.margin()
+        #print "margin",self.margin()
+
+
+
+class SlicFeatureOp(RawSlicFeatureOp):
+    def __init__(self,
+            seedDists,
+            scalings):
+
+        if isinstance(seedDists,numbers.Number):
+            seedDists = [seedDists]
+
+        if isinstance(scalings,numbers.Number):
+            scalings = [scalings]
+
+        seedDists = numpy.require(seedDists,dtype='uint32')
+        scalings = numpy.require(scalings,dtype='float32')
+
+        super(SlicFeatureOp,self).__init__(seedDistances=seedDists,
+                                           intensityScalings=scalings)
+        #print "margin",self.margin()
 
 
 
@@ -125,7 +145,7 @@ class ActiveGraphLearning(object):
         print "features/labels.shape", features.shape, labels.shape
 
         print "train random forest"
-        rf = self.getFreshRf(treeCount=255)
+        rf = self.getFreshRf(treeCount=100)
         oob = rf.learnRF(features, labels)
 
         print "OOB", oob

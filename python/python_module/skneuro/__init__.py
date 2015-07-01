@@ -9,6 +9,9 @@ import sys
 from PyQt4.QtGui import QApplication
 import numpy
 import vigra
+from blocking import *
+
+from progressbar import *  
 
 class Singleton:
     """
@@ -79,3 +82,18 @@ def addHocViewer(grayData=None, segData=None, title="viewer",visu=True):
         v.setWindowTitle(title)
         v.showMaximized()
         app.exec_()
+
+
+
+
+
+
+
+def getPbar(maxval,name=""):
+    cname = name #redStr(name)
+    widgets = [' %s: '%cname, Percentage(), ' ', Bar(marker='*',left='[',right=']'),
+           ' ',ETA()] #see docs for other options
+
+    pbar = ProgressBar(widgets=widgets, maxval=maxval)
+    #pbar.start()
+    return pbar

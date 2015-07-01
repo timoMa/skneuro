@@ -182,11 +182,13 @@ namespace skneuro{
         typedef vigra::MultiArrayView<4, float> Shape4;
         IlastikFeatureOperator(
             const std::vector<float> & sigmas,
-            const vigra::MultiArrayView<2, bool> & featureSelection
+            const vigra::MultiArrayView<2, bool> & featureSelection,
+            const size_t nChannels = 1
         )
         :   sigmas_(sigmas),
             featureSelection_(featureSelection),
-            nFeatures_(0){
+            nFeatures_(0),
+            nChannels_(nChannels){
 
             nFeatures_ += featureSelection_.bindOuter(size_t(FuncIndex::GaussianSmoothing)).sum<size_t>();
             nFeatures_ += featureSelection_.bindOuter(size_t(FuncIndex::LaplacianOfGaussian)).sum<size_t>();
@@ -381,6 +383,7 @@ namespace skneuro{
         vigra::MultiArray<2, bool> featureSelection_;
         size_t nFeatures_;
         float maxSigma_;
+        nChannels_;
     };
 
 

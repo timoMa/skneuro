@@ -31,27 +31,29 @@ namespace bp = boost::python;
 
 
 template<class T>
-void sizeFilterSegInplace(vigra::NumpyArray<3, T>  seg, const vigra::UInt32 maxVal, const vigra::UInt32 sizeLimit){
+void sizeFilterSegInplace(vigra::NumpyArray<3, T>  seg, const vigra::UInt32 maxVal, const vigra::UInt32 sizeLimit, bool checkAtBorder=true){
     
 
     std::vector<bool > atBorder(maxVal+1, false);
 
-    for(size_t z=0;z<seg.shape(2); ++z)
-    for(size_t y=0;y<seg.shape(1); ++y){
-        atBorder[seg(0,y,z)] = true;
-        atBorder[seg(seg.shape(0)-1,y,z)] = true;
-    }
+    if (not checkAtBorder){
+        for(size_t z=0;z<seg.shape(2); ++z)
+        for(size_t y=0;y<seg.shape(1); ++y){
+            atBorder[seg(0,y,z)] = true;
+            atBorder[seg(seg.shape(0)-1,y,z)] = true;
+        }
 
-    for(size_t z=0;z<seg.shape(2); ++z)
-    for(size_t x=0;x<seg.shape(0); ++x){
-        atBorder[seg(x,0,z)] = true;
-        atBorder[seg(x,seg.shape(1)-1,z)] = true;
-    }
+        for(size_t z=0;z<seg.shape(2); ++z)
+        for(size_t x=0;x<seg.shape(0); ++x){
+            atBorder[seg(x,0,z)] = true;
+            atBorder[seg(x,seg.shape(1)-1,z)] = true;
+        }
 
-    for(size_t y=0;y<seg.shape(1); ++y)
-    for(size_t x=0;x<seg.shape(0); ++x){
-        atBorder[seg(x,y,0)] = true;
-        atBorder[seg(x,y,seg.shape(2)-1)] = true;
+        for(size_t y=0;y<seg.shape(1); ++y)
+        for(size_t x=0;x<seg.shape(0); ++x){
+            atBorder[seg(x,y,0)] = true;
+            atBorder[seg(x,y,seg.shape(2)-1)] = true;
+        }
     }
 
 
@@ -81,7 +83,8 @@ void export_seg_helper(){
         (
             bp::arg("seg"),
             bp::arg("maxVal"),
-            bp::arg("sizeLimit")
+            bp::arg("sizeLimit"),
+            bp::arg("checkAtBorder") = false
         )
     );
 

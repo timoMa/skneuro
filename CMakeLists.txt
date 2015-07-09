@@ -34,6 +34,13 @@ FIND_PACKAGE(VIGRA REQUIRED)
 include_directories(${VIGRA_INCLUDE_DIR})
 
 #--------------------------------------------------------------
+# numpy
+#--------------------------------------------------------------
+FIND_PACKAGE(NUMPY REQUIRED)
+include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
+
+
+#--------------------------------------------------------------
 # lemon
 #--------------------------------------------------------------
 #FIND_PACKAGE(LEMON REQUIRED)

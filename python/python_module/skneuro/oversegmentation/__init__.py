@@ -210,6 +210,14 @@ def largeSeedWatershed(raw, pmap, seeds, membraneWidth = 7.0, visu=False):
     cOpts = vbw.convOpts
 
     pmap = numpy.require(pmap, dtype='float32')
+    
+    with  vigra.Timer("add noise"):
+        mx = pmap.max()
+        sshape = pmap.squeeze().shape()
+        noise = numpy.random.rand(*sshape)*(0.02*mx)
+        noise = vigra.taggedView(noise,'xyz')
+        pmap += noise
+
 
     with  vigra.Timer("smoothed tie breaker"):
         # compute a smoothed map as tie breaker

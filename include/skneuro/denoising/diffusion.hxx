@@ -242,9 +242,11 @@ struct MyHessianOfGaussian{
     static void op(
         const vigra::MultiArrayView<DIM, T> & in,
         vigra::MultiArrayView<DIM, T_OUT> & out,
-        const double sigma1
+        const double sigma1,
+        const double sigma2
     ){
         vigra::hessianOfGaussianMultiArray(in, out, sigma1); 
+        vigra::gaussianSmoothMultiArray(out,out,sigma2);
     }
 };
 
@@ -255,13 +257,15 @@ struct MyHessianOfGaussian< vigra::TinyVector<T, NC> >{
     static void op(
         const vigra::MultiArrayView<DIM, vigra::TinyVector<T, NC> > & in,
         vigra::MultiArrayView<DIM, T_OUT> & out,
-        const double sigma1
+        const double sigma1,
+        const double sigma2
     ){
         vigra::MultiArray<DIM, T_OUT> tmpOut(out.shape());
         out = T_OUT(0.0);
         for(size_t c=0; c<NC; ++c){
             vigra::MultiArrayView<DIM, T> inC = in.bindElementChannel(c);
-            vigra::hessianOfGaussianMultiArray(inC, tmpOut, sigma1); 
+            vigra::hessianOfGaussianMultiArray(inC, tmpOut, sigma1);
+            vigra::gaussianSmoothMultiArray(tmpOut,tmpOut,sigma2); 
             out+=tmpOut;
         }
     }
@@ -353,7 +357,8 @@ struct BlockUpdate{
                                              param_.sigmaTensor2_);
         }
         else{
-            MyHessianOfGaussian<T>::op(subImg, structureTensor, param_.sigmaTensor1_);
+            MyHessianOfGaussian<T>::op(subImg, structureTensor, param_.sigmaTensor1_,
+                                       param_.sigmaTensor2_);
         }
         
         
@@ -604,6 +609,16 @@ void blockwiseDiffusion( vigra::MultiArrayView<DIM,T> & img, const DiffusionPara
     }
 
 }
+
+
+
+template<unsigned int DIM, class T>
+void diffusion(
+    vigra::MultiArrayView<DIM,T> & img
+){
+
+}
+
 
 
 }

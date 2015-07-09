@@ -22,7 +22,15 @@
 #include <vector>
 
 
-void export_viscous_watershed();
+
+
+
+
+void export_seg_helper();
+
+
+
+
 // export my module
 BOOST_PYTHON_MODULE_INIT(_oversegmentation) {
 
@@ -34,5 +42,6 @@ BOOST_PYTHON_MODULE_INIT(_oversegmentation) {
     // No not change 4 line above
 
 
-    //export_viscous_watershed();
+
+    export_seg_helper();
 }

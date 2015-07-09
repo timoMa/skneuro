@@ -1,5 +1,5 @@
 import h5py
-from .. import Blocking
+#from .. import Blocking
 
 def defaultChunks(shape=None):
     c = (100,100,100)
@@ -16,8 +16,27 @@ def stackRawAndPmapNaive(raw, pmap, out):
 
 
 
+def pyramideShapes(shape):
+    shapes = []
+    cshape = shape
+    while True:
+        b = False
+        for s in cshape:
+            if s == 1 :
+                b = True
+                break
+        if b :
+            break
+        cshape = [s/2 for s in cshape]
+        shapes.append(cshape)
+    print len(shapes)
+    return shapes
+
+def volumePyramide(datasetIn, outGroup):
+    pass
+
 
 
 if __name__ == "__main__":
     
-    pass
+    print pyramideShapes([3300,3300,4000])

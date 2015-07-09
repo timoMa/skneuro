@@ -4,10 +4,11 @@ import vigra
 from volumina.api import Viewer
 from PyQt4.QtGui import QApplication
 import skneuro.denoising as dn
-import pylab
 
-if True:
-    data = vigra.impex.readHDF5('/media/tbeier/data/datasets/hhess/2x2x2nm_chunked/data_sub.h5','data')[0:300,0:300,0:300].astype('float32').squeeze()
+
+
+p = '/home/tbeier/Desktop/blocks/data_sub_3.h5'
+data = vigra.impex.readHDF5(p,'data')[0:70,0:70,0:70].astype('float32').squeeze()
 
 
 
@@ -17,9 +18,14 @@ v = Viewer()
 
 v.addGrayscaleLayer(data, name="raw")
 
-a = dn.ballRankOrderFilter(data,radius=7, rank=0.1)
+with vigra.Timer("get ranks 8*2"):
+    for i in range(3):
+        if i == 0:
+            d = data
+        dnd = dn.ballRankOrderFilter(d,radius=4, rank=0.5)
+        d = dnd
+v.addGrayscaleLayer(d, name="0.5 8* 2")
 
-v.addGrayscaleLayer(a, name="0.5")
 
 
 v.setWindowTitle("data")

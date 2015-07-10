@@ -6,6 +6,7 @@ from  skneuro import addHocViewer
 from vigra import blockwise as vbw
 
 import skneuro
+from scipy.spatial.distance import cdist
 
 
 
@@ -127,14 +128,14 @@ def prepareMinMap(raw, pmap, sPre=0.8, sInt=5.0, mapInterval=0.5,
     # get pmap integral
     pmapIntegral = vigra.filters.gaussianSmoothing(numpy.require(pmap, dtype=numpy.float32), sigma=sInt )
     pmapIntegral = numpy.array(pmapIntegral)
-    
+
     grayData.append([rawG,'rawG'])
     grayData.append([pmapIntegral,'pmapIntegral'])
 
     if visu:
         addHocViewer(grayData, labelsData, visu=visu)
 
-    # remap integral 
+    # remap integral
     pmapIntegral[pmapIntegral>mapInterval]=mapInterval
     pmapIntegral*=1.0/mapInterval
 
@@ -161,7 +162,7 @@ def prepareMinMap(raw, pmap, sPre=0.8, sInt=5.0, mapInterval=0.5,
     # mix hard and soft according to pmap probability
     mixedPmap = numpy.empty(raw.shape)
     mixedPmap = (1.0 - pmapIntegral)*pmapTVHard  +  pmapIntegral*pmapTVSoft
-    
+
 
     print "le min le max",mixedPmap.min(), mixedPmap.max()
 
@@ -173,7 +174,7 @@ def prepareMinMap(raw, pmap, sPre=0.8, sInt=5.0, mapInterval=0.5,
     aew = vigra.filters.hessianOfGaussianEigenvalues(numpy.require(raw, dtype=numpy.float32), scale=scaleEw).squeeze()
     sew = numpy.sort(aew,axis=3)
     ew = sew[:, :, :, 2]
-    ew *= pmap**2 
+    ew *= pmap**2
     ew -= ew.min()
     ew /= ew.max()
     ew *= ewBeta
@@ -233,7 +234,7 @@ def largeSeedWatershed(raw, pmap, seeds, membraneWidth = 7.0, visu=False):
         opts = vbw.convOpts(blockShape=blockShape, sigma=membraneWidth/7.50)
         notSoMuch  = vbw.gaussianSmooth(pmap, options=opts)
 
-        # get the actual growing map
+        # get the actual growing mapz
         growingMap += notSoMuch 
         growingMap /= 1.0 + addEps
 
@@ -268,13 +269,13 @@ def getLargeSeeds(raw, pmap, membraneWidth , threshold , rank, visu=False):
         widerPmap1 = denoise.ballRankOrderFilter(pmap, radius=r, rank=rank)
         widerPmap = denoise.ballRankOrderFilter(widerPmap1, radius=r, rank=rank)
         widerPmap1 = None
-    
-    with  vigra.Timer("normalize"):   
+
+    with  vigra.Timer("normalize"):
         # renormalize
         widerPmap -= widerPmap.min()
         widerPmap /= widerPmap.max()
 
-    with  vigra.Timer("binarize"):   
+    with  vigra.Timer("binarize"):
         # binarize
         binaryPmap = numpy.zeros(widerPmap.shape, dtype='uint8')
         binaryPmap[pmap>threshold] = 1
@@ -283,8 +284,8 @@ def getLargeSeeds(raw, pmap, membraneWidth , threshold , rank, visu=False):
             widerPmap = None
 
 
-    with  vigra.Timer("multiBinaryDilation"):  
-        # morphology  
+    with  vigra.Timer("multiBinaryDilation"):
+        # morphology
         # 1) make membrane wider by  r
         r = int(membraneWidth*1.2 + 0.5)
         r = max(r, 2)
@@ -293,8 +294,8 @@ def getLargeSeeds(raw, pmap, membraneWidth , threshold , rank, visu=False):
         if visu == False:
             binaryPmap = None
 
-    #with  vigra.Timer("multiBinaryErosion"):  
-    #    # morphology  
+    #with  vigra.Timer("multiBinaryErosion"):
+    #    # morphology
     #    # 1) make membrane smaller by  r
     #    r = int(membraneWidth*0.1 + 0.5)
     #    r = max(r, 1)
@@ -302,7 +303,7 @@ def getLargeSeeds(raw, pmap, membraneWidth , threshold , rank, visu=False):
     #    if visu == False:
     #        mBinaryPmapA = None
 
-    with  vigra.Timer("labelVolumeWithBackground"):  
+    with  vigra.Timer("labelVolumeWithBackground"):
         # get seeds
         invertedBinaryPmap = 1- mBinaryPmapA
         if visu == False:
@@ -334,10 +335,10 @@ def getLargeSeeds(raw, pmap, membraneWidth , threshold , rank, visu=False):
     return ccImg
 
 def pmapToSegmentation(raw, pmap, membraneWidth, threshold , rank, seeds=None, visu=False):
-    
+
     if seeds is None:
         # get the (very large) seeds
-        seeds = getLargeSeeds(raw=raw, pmap=pmap, 
+        seeds = getLargeSeeds(raw=raw, pmap=pmap,
                               membraneWidth=membraneWidth,
                               threshold=threshold, rank=rank,visu=visu)
 
@@ -359,3 +360,86 @@ def waterSlic(image, pmap, seedDist, scaling,
 
 def honyshed(pmap):
     pass
+
+def findBestSeedCloserThanMembrane(seeds, distances, distanceTrafo, membraneDistance):
+    """ finds the best seed of the given seeds, that is the seed with the highest value distance transformation."""
+    closeSeeds = distances <= membraneDistance
+    numpy.zeros_like(closeSeeds)
+    # iterate over all close seeds
+    maximumDistance = -numpy.inf
+    mostCentralSeed = None
+    for seed in seeds[closeSeeds]:
+        if distanceTrafo[seed[0], seed[1], seed[2]] > maximumDistance:
+            maximumDistance = distanceTrafo[seed[0], seed[1], seed[2]]
+            mostCentralSeed = seed
+    return mostCentralSeed
+
+
+def nonMaximumSuppressionSeeds(seeds, distanceTrafo):
+    """ removes all seeds that have a neigbour that is closer than the the next membrane
+
+    seeds is a list of all seeds, distanceTrafo is array-like
+    return is a list of all seeds that are relevant.
+
+    works only for 3d
+    """
+    seedsCleaned = set()
+
+    # calculate the distances from each seed to the next seeds.
+    distances = cdist(seeds, seeds)
+    for i in numpy.arange(len(seeds)):
+        membraneDistance = distanceTrafo[seeds[i,0], seeds[i,1], seeds[i,2]]
+        bestAlternative = findBestSeedCloserThanMembrane(seeds, distances[i,:], distanceTrafo, membraneDistance)
+        seedsCleaned.add(tuple(bestAlternative))
+    return numpy.array(list(seedsCleaned))
+
+
+def volumeToListOfPoints(seedsVolume, threshold=0.):
+    return numpy.array(numpy.where(seedsVolume > threshold)).transpose()
+
+
+def placePointsInVolumen(points, shape):
+    volumen = numpy.zeros(shape)
+    points = numpy.maximum(points, numpy.array((0, 0, 0)))
+    points = numpy.minimum(points, numpy.array(shape) - 1)
+    for point in (numpy.floor(points)).astype(int):
+        volumen[point[0], point[1], point[2]] = 1
+    return volumen
+
+
+def wsDtSegmentation(pmap, pmin, minMembraneSize, minSegmentSize, sigmaMinima, sigmaWeights, cleanCloseSeeds=True):
+    # get the thresholded pmap
+    binary = numpy.zeros_like(pmap, dtype=numpy.uint32)
+    binary[pmap >= pmin] = 1
+
+    # delete small CCs
+    labeled = vigra.analysis.labelVolumeWithBackground(binary)
+    skneuro.oversegmentation.sizeFilterSegInplace(labeled, int(numpy.max(labeled)), int(minMembraneSize), checkAtBorder=True)
+
+    # use cleaned binary image as mask
+    mask = numpy.zeros_like(binary, dtype = numpy.float32)
+    mask[labeled > 0] = 1.
+
+    # perform signed dt on mask
+    dt = vigra.filters.distanceTransform3D(mask)
+    dtInv = vigra.filters.distanceTransform3D(mask, background=False)
+    dtInv[dtInv>0] -= 1
+    dtSigned = dt.max() - dt + dtInv
+
+    dtSignedSmoothMinima = vigra.filters.gaussianSmoothing(dtSigned, sigmaMinima)
+    dtSignedSmoothWeights = vigra.filters.gaussianSmoothing(dtSigned, sigmaWeights)
+
+    seeds = vigra.analysis.localMinima3D(dtSignedSmoothMinima, neighborhood=26, allowAtBorder=True)
+
+    if cleanCloseSeeds:
+        seeds = nonMaximumSuppressionSeeds(volumeToListOfPoints(seeds), dt)
+        seeds = placePointsInVolumen(seeds, mask.shape).astype(numpy.uint32)
+
+    seedsLabeled = vigra.analysis.labelVolumeWithBackground(seeds)
+    segmentation = vigra.analysis.watershedsNew(dtSignedSmoothWeights, seeds = seedsLabeled, neighborhood=26)[0]
+
+    skneuro.oversegmentation.sizeFilterSegInplace(segmentation, int(numpy.max(segmentation)), int(minSegmentSize), checkAtBorder=True)
+
+    segmentation = vigra.analysis.watershedsNew(dtSignedSmoothWeights, seeds = segmentation, neighborhood=26)[0]
+
+    return segmentation

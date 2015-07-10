@@ -213,9 +213,11 @@ def largeSeedWatershed(raw, pmap, seeds, membraneWidth = 7.0, visu=False):
     
     with  vigra.Timer("add noise"):
         mx = pmap.max()
-        sshape = pmap.squeeze().shape()
-        noise = numpy.random.rand(*sshape)*(0.02*mx)
-        noise = vigra.taggedView(noise,'xyz')
+        sshape = pmap.squeeze().shape
+        noise = numpy.random.rand(*sshape)*(0.05*mx)
+        noise = vigra.taggedView(noise.astype('float32'),'xyz')
+        opts = vbw.convOpts(blockShape=blockShape, sigma=4.0)
+        noise  = vbw.gaussianSmooth(noise, options=opts)
         pmap += noise
 
 
@@ -227,8 +229,12 @@ def largeSeedWatershed(raw, pmap, seeds, membraneWidth = 7.0, visu=False):
         growingMap = gaussianSmoothedPmap
         growingMap *= addEps
 
+        #
+        opts = vbw.convOpts(blockShape=blockShape, sigma=membraneWidth/7.50)
+        notSoMuch  = vbw.gaussianSmooth(pmap, options=opts)
+
         # get the actual growing map
-        growingMap += pmap 
+        growingMap += notSoMuch 
         growingMap /= 1.0 + addEps
 
     with  vigra.Timer("watershedsNew"):

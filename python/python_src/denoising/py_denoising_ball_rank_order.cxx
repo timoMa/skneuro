@@ -48,6 +48,28 @@ vigra::NumpyAnyArray  pyBallRankOrder(
 }
 
 
+template<class PIXEL_TYPE>
+vigra::NumpyAnyArray  pyBallRankOrderNew(
+    vigra::NumpyArray<3,PIXEL_TYPE> image,
+    const int radius,
+    const float rank,
+    const float minVal,
+    const float maxVal,
+    const float nBins,
+    vigra::NumpyArray<3,PIXEL_TYPE> out = vigra::NumpyArray<3,PIXEL_TYPE>()
+){
+    out.reshapeIfEmpty(image.shape());
+    {
+        vigra::PyAllowThreads _pythread;
+        skneuro::ballRankOrderFilterNew(image, radius, rank,
+                                        minVal, maxVal, nBins,
+                                        out);
+    }
+    return out;
+}
+
+
+
 
 
 
@@ -66,6 +88,17 @@ void exportBallRankOrder(){
             bp::arg("image"),
             bp::arg("radius"),
             bp::arg("rank"),
+            bp::arg("out")=bp::object()
+        )
+    );
+
+    bp::def("ballRankOrderFilterNew",vigra::registerConverters(&pyBallRankOrderNew<float>),
+        (
+            bp::arg("image"),
+            bp::arg("radius"),
+            bp::arg("rank"),
+            bp::arg("minVal"),
+            bp::arg("maxVal"),
             bp::arg("out")=bp::object()
         )
     );

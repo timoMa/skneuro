@@ -7,8 +7,8 @@ import skneuro.denoising as dn
 
 
 
-p = '/media/tbeier/data/datasets/hhess/2x2x2nm_chunked/data_sub_n_5.h5'
-data = vigra.impex.readHDF5(p,'data')[0:200,0:200,0:100].astype('float32').squeeze()
+p = '/home/tbeier/Desktop/blocks/data_sub_3.h5'
+data = vigra.impex.readHDF5(p,'data')[0:200,:,0:200].astype('uint8').squeeze()
 
 
 
@@ -21,8 +21,14 @@ v.addGrayscaleLayer(data, name="raw")
 
 
 with vigra.Timer("get ranks 8*2"):
-    a = dn.ballRankOrderFilterNew(data,radius=4, rank=0.5,
-                                  minVal=0.0, maxVal=255.0)
+    a = dn.ballRankOrder(data,
+        radius=12, 
+        takeNth=2,
+        ranks=(0.01,0.1, 0.5, 0.9, 0.99),
+        useHistogram=True,
+        minVal=0.0,
+        maxVal=255.0,
+        nBins=256)
     
 v.addGrayscaleLayer(a, name="0.5 8* 2")
 

@@ -85,8 +85,11 @@ def addHocViewer(grayData=None, segData=None, title="viewer",visu=True):
 
 
 
-
-
+def roiToSlices(roiBegin, roiEnd):
+    slices = []
+    for b,e in zip(roiBegin,roiEnd):
+        slices.append(slice(b,e))
+    return slices
 
 
 def getPbar(maxval,name=""):
@@ -97,3 +100,17 @@ def getPbar(maxval,name=""):
     pbar = ProgressBar(widgets=widgets, maxval=maxval)
     #pbar.start()
     return pbar
+
+
+
+def loadFromDataset(dataset, slicing):
+    lenS = len(slicing)
+    dsShape = dataset.shape
+    ndim = len(dsShape)
+
+    if ndim == lenS :
+        return dataset[tuple(slicing)]
+    elif ndim == lenS + 1 and dsShape[lenS] == 1:
+        return dataset[tuple(slicing+[slice(0,1)])]
+
+

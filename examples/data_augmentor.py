@@ -42,16 +42,6 @@ def augmentGaussian(data, lAdd, gAdd, gMult):
 
 
 
-def binaryBlobs(shape, p=0.00001, radius=6, r=3):
-    data = numpy.zeros(shape,dtype='uint8')
-    r = numpy.random.rand(*shape)
-    data[r<p] = 1
-    data = vigra.filters.multiBinaryDilation(data,radius)
-    return data
-
-
-
-
 
 
 def augmentRaw(data, lAdd=8.0, gAdd=10.0, gMult=0.3):

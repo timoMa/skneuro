@@ -9,6 +9,16 @@ import numbers
 
 
 
+def maskData(data, roiBegin, roiEnd):
+    inShape = data.shape
+    mask = numpy.zeros(data.shape, dtype='uint8')
+    mask[roiBegin[0]:roiEnd[0], roiBegin[1]:roiEnd[1], roiBegin[2]:roiEnd[2]] = 1
+    dataOut = data.squeeze().copy()
+    dataOut*=mask
+    return dataOut.reshape(inShape)
+
+
+
 class IlastikFeatureOperator(RawIlastikFeatureOperator):
     def __init__(self,
         sigmas = [0.3, 0.7, 1, 1.6, 3.5, 5.0, 10.0],

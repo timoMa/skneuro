@@ -37,6 +37,7 @@ namespace skneuro{
 
         void store(const vigra::MultiArrayView<3, T_OUT> & featureImg){
             for(size_t inst=0; inst<whereGt_.size(); ++inst){
+                SKNEURO_CHECK_OP(fIndex_,<,features_.shape(0),"");
                 features_(fIndex_, inst) = featureImg[whereGt_[inst]];
             }
             ++fIndex_;
@@ -46,8 +47,10 @@ namespace skneuro{
         void store(const vigra::MultiArrayView<3, vigra::TinyVector<T_OUT, NC> > & featureImg){
             for(size_t inst=0; inst<whereGt_.size(); ++inst){
                 const auto & tv = featureImg[whereGt_[inst]];
-                for(size_t f=0; f<NC; ++f)
+                for(size_t f=0; f<NC; ++f){
+                    SKNEURO_CHECK_OP(fIndex_+f,<,features_.shape(0),"");
                     features_(fIndex_+f, inst) = tv[f];
+                }
             }
             fIndex_+=NC;
         }

@@ -9,7 +9,7 @@ from multiprocessing import cpu_count
 
 hasSkimageTv=True
 try:
-    from skimage.filter import denoise_tv_bregman, denoise_tv_chambolle
+    from skimage.filters import denoise_tv_bregman, denoise_tv_chambolle
 except:
     try:
         from skimage.restoration import denoise_tv_bregman, denoise_tv_chambolle
@@ -147,7 +147,7 @@ def guidedFilter(image, epsilon, guidanceImage=None, fMean=None):
         corrG  = fMean(image*image)
         corrGI = corrG
 
-        # 2) var and cov    
+        # 2) var and cov
         varG = corrG - meanG*meanG
         covGI = varG
         guidanceImage = image
@@ -158,7 +158,7 @@ def guidedFilter(image, epsilon, guidanceImage=None, fMean=None):
         corrG  = fMean(guidanceImage*guidanceImage)
         corrGI = fMean(guidanceImage*image)
 
-        # 2) var and cov    
+        # 2) var and cov
         varG = corrG - meanG*meanG
         covGI = corrGI - meanI*meanG
 
@@ -170,7 +170,7 @@ def guidedFilter(image, epsilon, guidanceImage=None, fMean=None):
     meanA = fMean(a)
     meanB = fMean(b)
 
-    # 5) make result q 
+    # 5) make result q
     q = meanA.view(numpy.ndarray)*guidanceImage.view(numpy.ndarray) + meanB.view(numpy.ndarray)
 
     return q
@@ -179,12 +179,12 @@ def guidedFilter(image, epsilon, guidanceImage=None, fMean=None):
 
 def gaussianGuidedFilter(image,sigma,epsilon, guidanceImage=None):
     fMean = partial(gaussianSmoothing,sigma=sigma)
-    return guidedFilter(image=image, guidanceImage=guidanceImage, 
+    return guidedFilter(image=image, guidanceImage=guidanceImage,
                         epsilon=epsilon, fMean=fMean)
 
 def medianGuidedFilter(image,radius,epsilon, guidanceImage=None):
     fMean = partial(medianSmoothing,radius=radius)
-    return guidedFilter(image=image, guidanceImage=guidanceImage, 
+    return guidedFilter(image=image, guidanceImage=guidanceImage,
                         epsilon=epsilon, fMean=fMean)
 
 
@@ -197,7 +197,7 @@ def pmapGapClosing(pmap,strength=5.0, alpha=0.001, t=10, dt=0.1,
                    innerScale = 5.0, outerScale=15.0,
                    sigmaStep=0.4, C=0.000001, m=1.0, initNoise=0.0001,
                    renormalize=True, takeMax=True):
-    
+
     def clipOnQuantile(array, ql,qh):
         quantiles = numpy.percentile(array,[ql*100.0,qh*100.0])
         print quantiles
@@ -213,7 +213,7 @@ def pmapGapClosing(pmap,strength=5.0, alpha=0.001, t=10, dt=0.1,
     pmap = pmap.squeeze()
     shape = pmap.shape
     ndim = pmap.ndim
-    
+
     #diffused = clipOnQuantile(pmap,0.001,0.999)*255.0
     diffused = pmap.copy()
     diffused = numpy.array(diffused) + numpy.random.rand(*shape)*initNoise
@@ -255,7 +255,7 @@ def pmapGapClosing(pmap,strength=5.0, alpha=0.001, t=10, dt=0.1,
 
 
 def rpmapGapClosing(pmap,iterations,**kwargs):
-    
+
     smoothed = pmap.copy()
     for i in range(iterations):
         newSmootehd = pmapGapClosing(smoothed,**kwargs)

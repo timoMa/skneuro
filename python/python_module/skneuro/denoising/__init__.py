@@ -196,7 +196,7 @@ def medianGuidedFilter(image,radius,epsilon, guidanceImage=None):
 def pmapGapClosing(pmap,strength=5.0, alpha=0.001, t=10, dt=0.1,
                    innerScale = 5.0, outerScale=15.0,
                    sigmaStep=0.4, C=0.000001, m=1.0, initNoise=0.0001,
-                   renormalize=True, takeMax=True):
+                   renormalize=True, takeMax=True,useSt=True):
 
     def clipOnQuantile(array, ql,qh):
         quantiles = numpy.percentile(array,[ql*100.0,qh*100.0])
@@ -225,7 +225,7 @@ def pmapGapClosing(pmap,strength=5.0, alpha=0.001, t=10, dt=0.1,
     param.alpha = alpha # smoothing orthogonal to plane
     param.maxT = t
     param.dt = dt
-    param.useSt = True # strucut
+    param.useSt = useSt # strucut
 
     param.sigmaTensor1 = innerScale # estimate of orientations
     param.sigmaTensor2 = outerScale # collect orientations

@@ -32,19 +32,48 @@ namespace bp = boost::python;
 
 
 
-template<class PIXEL_TYPE>
-vigra::NumpyAnyArray  pyBallRankOrder(
-    vigra::NumpyArray<3,PIXEL_TYPE> image,
+template<class T_IN, unsigned int N_RANKS, class T_OUT>
+vigra::NumpyAnyArray  pyBallRankOrderNew(
+    vigra::NumpyArray<3,T_IN> image,
     const int radius,
-    const float rank,
-    vigra::NumpyArray<3,PIXEL_TYPE> out = vigra::NumpyArray<3,PIXEL_TYPE>()
+    const int takeNth,
+    const vigra::TinyVector<float,N_RANKS> & ranks,
+    const bool useHistogram,
+    const float minVal,
+    const float maxVal,
+    const float nBins,
+    vigra::NumpyArray<3, vigra::TinyVector<T_OUT, N_RANKS> > out
 ){
     out.reshapeIfEmpty(image.shape());
     {
         vigra::PyAllowThreads _pythread;
-        skneuro::ballRankOrderFilter(image, radius, rank, out);
+        skneuro::ballRankOrderFilterNew<T_IN,N_RANKS,T_OUT>
+        (image, radius, takeNth, ranks,useHistogram,minVal, 
+        maxVal, nBins, out);
     }
     return out;
+}
+
+
+template<class T_IN, unsigned int N_RANKS, class T_OUT>
+void exportRankOrderT(){
+
+    bp::def("ballRankOrder",vigra::registerConverters
+        (
+            &pyBallRankOrderNew<T_IN, N_RANKS, T_OUT>
+        ),
+        (
+            bp::arg("image"),
+            bp::arg("radius"),
+            bp::arg("takeNth"),
+            bp::arg("ranks"),
+            bp::arg("useHistogram"),
+            bp::arg("minVal"),
+            bp::arg("maxVal"),
+            bp::arg("nBins"),
+            bp::arg("out")=bp::object()
+        )
+    );
 }
 
 
@@ -61,13 +90,27 @@ void exportBallRankOrder(){
     // No not change 4 line above
 
 
-    bp::def("ballRankOrderFilter",vigra::registerConverters(&pyBallRankOrder<float>),
-        (
-            bp::arg("image"),
-            bp::arg("radius"),
-            bp::arg("rank"),
-            bp::arg("out")=bp::object()
-        )
-    );
+    exportRankOrderT<float,1,float>();
+    exportRankOrderT<float,2,float>();
+    exportRankOrderT<float,3,float>();
+    exportRankOrderT<float,4,float>();
+    exportRankOrderT<float,5,float>();
+    exportRankOrderT<float,5,float>();
+    exportRankOrderT<float,6,float>();
+    exportRankOrderT<float,7,float>();
+    exportRankOrderT<float,8,float>();
+    exportRankOrderT<float,9,float>();
+
+
+    exportRankOrderT<vigra::UInt8,1,float>();
+    exportRankOrderT<vigra::UInt8,2,float>();
+    exportRankOrderT<vigra::UInt8,3,float>();
+    exportRankOrderT<vigra::UInt8,4,float>();
+    exportRankOrderT<vigra::UInt8,5,float>();
+    exportRankOrderT<vigra::UInt8,6,float>();
+    exportRankOrderT<vigra::UInt8,7,float>();
+    exportRankOrderT<vigra::UInt8,8,float>();
+    exportRankOrderT<vigra::UInt8,9,float>();
+
 
 }

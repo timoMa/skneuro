@@ -23,6 +23,7 @@
 // my headers  ( in my_module/include )
 #include <skneuro/skneuro.hxx>
 #include <skneuro/denoising/diffusion.hxx>
+#include <skneuro/denoising/speed_test.hxx>
 
 
 
@@ -84,6 +85,30 @@ void exportDiffusion(){
             bp::arg("param")
         )
     );
+
+    bp::def("speedThorsten", vigra::registerConverters(&solveEigenProblem3x3Thorsten),
+            (
+             bp::arg("in"),
+             bp::arg("eigenval"),
+             bp::arg("eigenvec")
+            )
+           );
+
+    bp::def("speedVigra", vigra::registerConverters(&solveEigenProblem3x3Vigra),
+            (
+             bp::arg("in"),
+             bp::arg("eigenval"),
+             bp::arg("eigenvec")
+            )
+           );
+
+    bp::def("speedVigraNew", vigra::registerConverters(&solveEigenProblem3x3VigraNew),
+            (
+             bp::arg("in"),
+             bp::arg("eigenval"),
+             bp::arg("eigenvec")
+            )
+           );
 
     //bp::def("diffusion2dc",vigra::registerConverters(&pyDiffusion<2,vigra::TinyVector<float, 3> >),
     //    (

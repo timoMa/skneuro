@@ -42,7 +42,6 @@ def nonLocalMean(
 
 def gaussianSmoothing(image,sigma):
     inImg = numpy.require(image, dtype=numpy.float32)
-    print inImg.shape
     inImg = vigra.taggedView(inImg, 'xyz')
     #print inImg.shape, inImg.dtype
     return vigra.gaussianSmoothing(inImg, sigma=sigma)
@@ -193,9 +192,9 @@ def medianGuidedFilter(image,radius,epsilon, guidanceImage=None):
 
 
 
-def pmapGapClosing(pmap,strength=5.0, alpha=0.001, t=10, dt=0.1,
-                   innerScale = 5.0, outerScale=15.0,
-                   sigmaStep=0.4, C=0.000001, m=1.0, initNoise=0.0001,
+def pmapGapClosing(pmap,strength=1.0, alpha=0.001, t=10, dt=0.1,
+                   innerScale = 1.5, outerScale=10.0,
+                   sigmaStep=0.5, C=0.000001, m=1.0, initNoise=0.0001,
                    renormalize=True, takeMax=True,useSt=True):
 
     def clipOnQuantile(array, ql,qh):
@@ -231,7 +230,7 @@ def pmapGapClosing(pmap,strength=5.0, alpha=0.001, t=10, dt=0.1,
     param.sigmaTensor2 = outerScale # collect orientations
     param.sigmaStep = sigmaStep # use a very small one (for divergence)
     param.C = C # if to large no diffusion(??)
-    param.m = m
+    param.m = m # no comment
     diffused = numpy.require(diffused,dtype='float32')
 
     if(ndim == 2):

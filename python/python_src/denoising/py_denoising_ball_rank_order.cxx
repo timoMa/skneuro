@@ -114,3 +114,44 @@ void exportBallRankOrder(){
 
 
 }
+
+
+template<class PIXEL_TYPE>
+vigra::NumpyAnyArray  pyBallRankOrder(
+    vigra::NumpyArray<3,PIXEL_TYPE> image,
+    const int radius,
+    const float rank,
+    vigra::NumpyArray<3,PIXEL_TYPE> out = vigra::NumpyArray<3,PIXEL_TYPE>()
+){
+    out.reshapeIfEmpty(image.shape());
+    {
+        vigra::PyAllowThreads _pythread;
+        skneuro::ballRankOrderFilter(image, radius, rank, out);
+    }
+    return out;
+}
+
+
+
+
+
+
+void exportBallRankOrderOld(){
+    // Do not change next 4 lines
+    //import_array(); 
+    //vigra::import_vigranumpy();
+    bp::numeric::array::set_module_and_type("numpy", "ndarray");
+    bp::docstring_options docstringOptions(true,true,false);
+    // No not change 4 line above
+
+
+    bp::def("ballRankOrderFilter",vigra::registerConverters(&pyBallRankOrder<float>),
+        (
+            bp::arg("image"),
+            bp::arg("radius"),
+            bp::arg("rank"),
+            bp::arg("out")=bp::object()
+        )
+    );
+
+}

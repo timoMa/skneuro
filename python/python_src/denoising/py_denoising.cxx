@@ -24,6 +24,7 @@
 
 void exportNonLocalMean();
 void exportBallRankOrder();
+void exportBallRankOrderOld();
 void exportDiffusion();
 void exportIIR();
 // export my module
@@ -39,6 +40,7 @@ BOOST_PYTHON_MODULE_INIT(_denoising) {
 
     exportNonLocalMean();
     exportBallRankOrder();
+    exportBallRankOrderOld();
     exportDiffusion();
     exportIIR();
 }
